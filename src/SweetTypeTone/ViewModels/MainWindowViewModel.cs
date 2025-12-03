@@ -247,7 +247,7 @@ public partial class MainWindowViewModel : ViewModelBase
                 ".config", "SweetTypeTone", "CustomSoundPacks"
             );
             
-            StatusMessage = $"Copy sound pack folders to: {customPacksPath}";
+            StatusMessage = $"Copy sound pack folders to: {customPacksPath}, then click Refresh";
             
             // TODO: Implement proper folder picker dialog
             // This requires platform-specific file dialogs which Avalonia supports
@@ -269,32 +269,50 @@ public partial class MainWindowViewModel : ViewModelBase
             IsLoading = true;
             StatusMessage = "Refreshing sound packs...";
             
-            // Reload sound packs
+            // Force rescan of sound packs from disk
+            await _soundPackService.RefreshSoundPacksAsync();
             var packs = await _soundPackService.GetAllSoundPacksAsync();
             
             // Remember current selection
             var currentPackId = SelectedSoundPack?.Id;
             
+            // Sort by supported status first, then alphabetically
+            var sortedPacks = packs
+                .OrderByDescending(p => p.IsSupported)  // Supported first
+                .ThenBy(p => p.Name)                     // Then alphabetically
+                .ToList();
+            
             // Update collection
             SoundPacks.Clear();
-            foreach (var pack in packs)
+            foreach (var pack in sortedPacks)
             {
+                var supportedText = pack.IsSupported ? "" : $" [{pack.UnsupportedReason}]";
+                Console.WriteLine($"  - {pack.Name}{supportedText} (ID: {pack.Id})");
                 SoundPacks.Add(pack);
             }
             
-            // Restore selection or select first
+            // Restore selection if still valid and supported
             if (!string.IsNullOrEmpty(currentPackId))
             {
-                SelectedSoundPack = SoundPacks.FirstOrDefault(p => p.Id == currentPackId);
+                var previousPack = SoundPacks.FirstOrDefault(p => p.Id == currentPackId);
+                if (previousPack?.IsSupported == true)
+                {
+                    SelectedSoundPack = previousPack;
+                }
             }
             
-            SelectedSoundPack ??= SoundPacks.FirstOrDefault();
+            // If no valid selection, pick first supported pack
+            SelectedSoundPack ??= SoundPacks.FirstOrDefault(p => p.IsSupported);
             
             StatusMessage = $"Refreshed! Found {packs.Count} sound packs";
         }
         catch (Exception ex)
         {
             StatusMessage = $"Refresh error: {ex.Message}";
+        }
+        finally
+        {
+            IsLoading = false;
         }
     }
 

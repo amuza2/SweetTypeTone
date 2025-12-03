@@ -329,6 +329,12 @@ public class SoundPackService : ISoundPackService
         await ScanDirectoryAsync(_soundPacksDirectory, false);
     }
 
+    public async Task RefreshSoundPacksAsync()
+    {
+        // Clear cache and rescan
+        await ScanForSoundPacksAsync();
+    }
+
     private async Task ScanDirectoryAsync(string directory, bool isCustom)
     {
         if (!Directory.Exists(directory))

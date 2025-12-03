@@ -46,4 +46,9 @@ public interface ISoundPackService
     /// Scan for sound packs in directories
     /// </summary>
     Task ScanForSoundPacksAsync();
+
+    /// <summary>
+    /// Refresh sound packs by clearing cache and rescanning
+    /// </summary>
+    Task RefreshSoundPacksAsync();
 }
