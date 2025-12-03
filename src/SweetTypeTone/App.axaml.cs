@@ -60,7 +60,8 @@ public partial class App : Application
 
             _mainWindow = new MainWindow
             {
-                DataContext = _mainViewModel
+                DataContext = _mainViewModel,
+                // Icon = LoadWindowIcon($"/Assets/{TrayIconPath}")
             };
 
             desktop.MainWindow = _mainWindow;
