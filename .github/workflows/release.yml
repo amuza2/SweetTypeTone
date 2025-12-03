@@ -5,25 +5,11 @@ on:
     tags:
       - 'v*'
 
-jobs:
-  create-release:
-    runs-on: ubuntu-latest
-    outputs:
-      upload_url: ${{ steps.create_release.outputs.upload_url }}
-    steps:
-      - name: Create Release
-        id: create_release
-        uses: actions/create-release@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          tag_name: ${{ github.ref }}
-          release_name: Release ${{ github.ref }}
-          draft: false
-          prerelease: false
+permissions:
+  contents: write
 
-  build-and-upload:
-    needs: create-release
+jobs:
+  build-and-release:
     runs-on: ubuntu-latest
     
     steps:
@@ -49,12 +35,10 @@ jobs:
         cd publish
         tar -czf ../SweetTypeTone-Linux-x64.tar.gz *
     
-    - name: Upload Release Asset
-      uses: actions/upload-release-asset@v1
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    - name: Create Release
+      uses: softprops/action-gh-release@v1
       with:
-        upload_url: ${{ needs.create-release.outputs.upload_url }}
-        asset_path: ./SweetTypeTone-Linux-x64.tar.gz
-        asset_name: SweetTypeTone-Linux-x64.tar.gz
-        asset_content_type: application/gzip
+        files: SweetTypeTone-Linux-x64.tar.gz
+        generate_release_notes: true
+        draft: false
+        prerelease: false
