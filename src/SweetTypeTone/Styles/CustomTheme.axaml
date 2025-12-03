@@ -1,0 +1,112 @@
+<ResourceDictionary xmlns="https://github.com/avaloniaui"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    
+    <!-- Color Palette -->
+    <Color x:Key="Cream">#F1F3E0</Color>
+    <Color x:Key="LightSage">#D2DCB6</Color>
+    <Color x:Key="SageGreen">#A1BC98</Color>
+    <Color x:Key="OliveGreen">#778873</Color>
+    <Color x:Key="DarkOlive">#5A6B56</Color>
+    
+    <!-- Brushes -->
+    <SolidColorBrush x:Key="CreamBrush" Color="{StaticResource Cream}"/>
+    <SolidColorBrush x:Key="LightSageBrush" Color="{StaticResource LightSage}"/>
+    <SolidColorBrush x:Key="SageGreenBrush" Color="{StaticResource SageGreen}"/>
+    <SolidColorBrush x:Key="OliveGreenBrush" Color="{StaticResource OliveGreen}"/>
+    <SolidColorBrush x:Key="DarkOliveBrush" Color="{StaticResource DarkOlive}"/>
+    
+    <!-- Button Theme Colors -->
+    <SolidColorBrush x:Key="ButtonBackground" Color="{StaticResource SageGreen}"/>
+    <SolidColorBrush x:Key="ButtonForeground" Color="{StaticResource Cream}"/>
+    <SolidColorBrush x:Key="ButtonBorderBrush" Color="{StaticResource OliveGreen}"/>
+    
+    <SolidColorBrush x:Key="ButtonBackgroundPointerOver" Color="{StaticResource OliveGreen}"/>
+    <SolidColorBrush x:Key="ButtonForegroundPointerOver" Color="{StaticResource Cream}"/>
+    <SolidColorBrush x:Key="ButtonBorderBrushPointerOver" Color="{StaticResource DarkOlive}"/>
+    
+    <SolidColorBrush x:Key="ButtonBackgroundPressed" Color="{StaticResource DarkOlive}"/>
+    <SolidColorBrush x:Key="ButtonForegroundPressed" Color="{StaticResource Cream}"/>
+    <SolidColorBrush x:Key="ButtonBorderBrushPressed" Color="{StaticResource DarkOlive}"/>
+    
+    <SolidColorBrush x:Key="ButtonBackgroundDisabled" Color="{StaticResource LightSage}"/>
+    <SolidColorBrush x:Key="ButtonForegroundDisabled" Color="#99778873"/>
+    <SolidColorBrush x:Key="ButtonBorderBrushDisabled" Color="#99A1BC98"/>
+    
+    <!-- ComboBox Theme Colors -->
+    <SolidColorBrush x:Key="ComboBoxBackground" Color="{StaticResource Cream}"/>
+    <SolidColorBrush x:Key="ComboBoxForeground" Color="{StaticResource OliveGreen}"/>
+    <SolidColorBrush x:Key="ComboBoxBorderBrush" Color="{StaticResource SageGreen}"/>
+    <SolidColorBrush x:Key="ComboBoxPlaceHolderForeground" Color="#99778873"/>
+    
+    <SolidColorBrush x:Key="ComboBoxBackgroundPointerOver" Color="{StaticResource LightSage}"/>
+    <SolidColorBrush x:Key="ComboBoxBorderBrushPointerOver" Color="{StaticResource SageGreen}"/>
+    
+    <SolidColorBrush x:Key="ComboBoxBackgroundPressed" Color="{StaticResource LightSage}"/>
+    <SolidColorBrush x:Key="ComboBoxBorderBrushPressed" Color="{StaticResource OliveGreen}"/>
+    
+    <SolidColorBrush x:Key="ComboBoxBackgroundDisabled" Color="#CCF1F3E0"/>
+    <SolidColorBrush x:Key="ComboBoxForegroundDisabled" Color="#99778873"/>
+    <SolidColorBrush x:Key="ComboBoxBorderBrushDisabled" Color="#99D2DCB6"/>
+    
+    <SolidColorBrush x:Key="ComboBoxBackgroundUnfocused" Color="Transparent"/>
+    <SolidColorBrush x:Key="ComboBoxBackgroundBorderBrushUnfocused" Color="Transparent"/>
+    <SolidColorBrush x:Key="ComboBoxBackgroundBorderBrushFocused" Color="{StaticResource SageGreen}"/>
+    
+    <SolidColorBrush x:Key="ComboBoxForegroundFocused" Color="{StaticResource OliveGreen}"/>
+    <SolidColorBrush x:Key="ComboBoxForegroundFocusedPressed" Color="{StaticResource DarkOlive}"/>
+    <SolidColorBrush x:Key="ComboBoxPlaceHolderForegroundFocusedPressed" Color="#99778873"/>
+    
+    <SolidColorBrush x:Key="ComboBoxDropDownGlyphForeground" Color="{StaticResource OliveGreen}"/>
+    <SolidColorBrush x:Key="ComboBoxDropDownGlyphForegroundFocused" Color="{StaticResource OliveGreen}"/>
+    <SolidColorBrush x:Key="ComboBoxDropDownGlyphForegroundFocusedPressed" Color="{StaticResource DarkOlive}"/>
+    <SolidColorBrush x:Key="ComboBoxDropDownGlyphForegroundDisabled" Color="#99778873"/>
+    
+    <!-- ComboBox Dropdown -->
+    <SolidColorBrush x:Key="ComboBoxDropDownBackground" Color="{StaticResource Cream}"/>
+    <SolidColorBrush x:Key="ComboBoxDropDownBorderBrush" Color="{StaticResource SageGreen}"/>
+    
+    <!-- ComboBoxItem Theme Colors -->
+    <SolidColorBrush x:Key="ComboBoxItemForeground" Color="{StaticResource OliveGreen}"/>
+    <SolidColorBrush x:Key="ComboBoxItemBackground" Color="Transparent"/>
+    <SolidColorBrush x:Key="ComboBoxItemBorderBrush" Color="Transparent"/>
+    
+    <SolidColorBrush x:Key="ComboBoxItemForegroundPointerOver" Color="{StaticResource Cream}"/>
+    <SolidColorBrush x:Key="ComboBoxItemBackgroundPointerOver" Color="{StaticResource SageGreen}"/>
+    <SolidColorBrush x:Key="ComboBoxItemBorderBrushPointerOver" Color="Transparent"/>
+    
+    <SolidColorBrush x:Key="ComboBoxItemForegroundPressed" Color="{StaticResource Cream}"/>
+    <SolidColorBrush x:Key="ComboBoxItemBackgroundPressed" Color="{StaticResource OliveGreen}"/>
+    <SolidColorBrush x:Key="ComboBoxItemBorderBrushPressed" Color="Transparent"/>
+    
+    <SolidColorBrush x:Key="ComboBoxItemForegroundDisabled" Color="#99778873"/>
+    <SolidColorBrush x:Key="ComboBoxItemBackgroundDisabled" Color="Transparent"/>
+    <SolidColorBrush x:Key="ComboBoxItemBorderBrushDisabled" Color="Transparent"/>
+    
+    <SolidColorBrush x:Key="ComboBoxItemForegroundSelected" Color="{StaticResource Cream}"/>
+    <SolidColorBrush x:Key="ComboBoxItemBackgroundSelected" Color="{StaticResource SageGreen}"/>
+    <SolidColorBrush x:Key="ComboBoxItemBorderBrushSelected" Color="Transparent"/>
+    
+    <SolidColorBrush x:Key="ComboBoxItemForegroundSelectedPointerOver" Color="{StaticResource Cream}"/>
+    <SolidColorBrush x:Key="ComboBoxItemBackgroundSelectedPointerOver" Color="{StaticResource OliveGreen}"/>
+    <SolidColorBrush x:Key="ComboBoxItemBorderBrushSelectedPointerOver" Color="Transparent"/>
+    
+    <SolidColorBrush x:Key="ComboBoxItemForegroundSelectedPressed" Color="{StaticResource Cream}"/>
+    <SolidColorBrush x:Key="ComboBoxItemBackgroundSelectedPressed" Color="{StaticResource DarkOlive}"/>
+    <SolidColorBrush x:Key="ComboBoxItemBorderBrushSelectedPressed" Color="Transparent"/>
+    
+    <SolidColorBrush x:Key="ComboBoxItemForegroundSelectedDisabled" Color="#99F1F3E0"/>
+    <SolidColorBrush x:Key="ComboBoxItemBackgroundSelectedDisabled" Color="#99A1BC98"/>
+    <SolidColorBrush x:Key="ComboBoxItemBorderBrushSelectedDisabled" Color="Transparent"/>
+    
+    <!-- Slider Colors -->
+    <SolidColorBrush x:Key="SliderTrackFill" Color="{StaticResource LightSage}"/>
+    <SolidColorBrush x:Key="SliderTrackFillPointerOver" Color="{StaticResource SageGreen}"/>
+    <SolidColorBrush x:Key="SliderTrackFillPressed" Color="{StaticResource SageGreen}"/>
+    <SolidColorBrush x:Key="SliderTrackValueFill" Color="{StaticResource SageGreen}"/>
+    <SolidColorBrush x:Key="SliderTrackValueFillPointerOver" Color="{StaticResource OliveGreen}"/>
+    <SolidColorBrush x:Key="SliderTrackValueFillPressed" Color="{StaticResource OliveGreen}"/>
+    <SolidColorBrush x:Key="SliderThumbBackground" Color="{StaticResource OliveGreen}"/>
+    <SolidColorBrush x:Key="SliderThumbBackgroundPointerOver" Color="{StaticResource DarkOlive}"/>
+    <SolidColorBrush x:Key="SliderThumbBackgroundPressed" Color="{StaticResource DarkOlive}"/>
+    
+</ResourceDictionary>

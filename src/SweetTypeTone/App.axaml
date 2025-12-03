@@ -1,0 +1,25 @@
+<Application xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             x:Class="SweetTypeTone.App"
+             xmlns:local="using:SweetTypeTone"
+             xmlns:converters="using:SweetTypeTone.Converters"
+             RequestedThemeVariant="Dark">
+
+    <Application.Resources>
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <ResourceInclude Source="/Styles/CustomTheme.axaml"/>
+            </ResourceDictionary.MergedDictionaries>
+            <converters:BoolToMuteButtonConverter x:Key="MuteButtonConverter"/>
+            <converters:BoolToStatusColorConverter x:Key="StatusColorConverter"/>
+        </ResourceDictionary>
+    </Application.Resources>
+
+    <Application.DataTemplates>
+        <local:ViewLocator/>
+    </Application.DataTemplates>
+  
+    <Application.Styles>
+        <FluentTheme />
+    </Application.Styles>
+</Application>

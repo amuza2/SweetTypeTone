@@ -1,0 +1,367 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:vm="using:SweetTypeTone.ViewModels"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        mc:Ignorable="d" d:DesignWidth="600" d:DesignHeight="700"
+        x:Class="SweetTypeTone.Views.MainWindow"
+        x:DataType="vm:MainWindowViewModel"
+        Title="{Binding Title}"
+        Width="400" Height="630"
+        MinWidth="400" MinHeight="600"
+        TransparencyLevelHint="AcrylicBlur"
+        Background="Transparent"
+        ExtendClientAreaToDecorationsHint="True"
+        ExtendClientAreaChromeHints="NoChrome"
+        SystemDecorations="None">
+
+    <Design.DataContext>
+        <vm:MainWindowViewModel/>
+    </Design.DataContext>
+
+    <Window.Styles>
+        <!-- Custom Slider Style with Hover Effects -->
+        <Style Selector="Slider">
+            <!-- Smooth transitions for all state changes -->
+            <Setter Property="Transitions">
+                <Transitions>
+                    <DoubleTransition Property="Opacity" Duration="0:0:0.2"/>
+                </Transitions>
+            </Setter>
+        </Style>
+        
+        <!-- Thumb (handle) hover effect -->
+        <Style Selector="Slider /template/ Thumb">
+            <Setter Property="Transitions">
+                <Transitions>
+                    <TransformOperationsTransition Property="RenderTransform" Duration="0:0:0.2" Easing="CubicEaseOut"/>
+                    <BrushTransition Property="Background" Duration="0:0:0.2"/>
+                </Transitions>
+            </Setter>
+        </Style>
+        
+        <!-- Scale up thumb on hover -->
+        <Style Selector="Slider:pointerover /template/ Thumb">
+            <Setter Property="RenderTransform" Value="scale(1.15)"/>
+        </Style>
+        
+        <!-- Scale down thumb on press -->
+        <Style Selector="Slider:pressed /template/ Thumb">
+            <Setter Property="RenderTransform" Value="scale(0.95)"/>
+        </Style>
+        
+        <!-- Track smooth transitions -->
+        <Style Selector="Slider /template/ RepeatButton">
+            <Setter Property="Transitions">
+                <Transitions>
+                    <BrushTransition Property="Background" Duration="0:0:0.2"/>
+                </Transitions>
+            </Setter>
+        </Style>
+        
+        <!-- Smooth opacity change on hover -->
+        <Style Selector="Slider:pointerover">
+            <Setter Property="Opacity" Value="1"/>
+        </Style>
+        
+        <!-- ComboBoxItem vertical centering -->
+        <Style Selector="ComboBoxItem">
+            <Setter Property="VerticalContentAlignment" Value="Center"/>
+            <Setter Property="MinHeight" Value="40"/>
+        </Style>
+    </Window.Styles>
+
+    <Panel>
+        <!-- Background with gradient -->
+        <Border>
+            <Border.Background>
+                <LinearGradientBrush StartPoint="0%,0%" EndPoint="100%,100%">
+                    <GradientStop Color="#D2DCB6" Offset="0"/>
+                    <GradientStop Color="#A1BC98" Offset="0.5"/>
+                    <GradientStop Color="#778873" Offset="1"/>
+                </LinearGradientBrush>
+            </Border.Background>
+        </Border>
+
+        <!-- Main Content -->
+        <Grid RowDefinitions="Auto,Auto,*,Auto" Margin="10">
+            
+            <!-- Custom Title Bar -->
+            <Border Grid.Row="0" 
+                    CornerRadius="16,16,0,0" 
+                    Padding="15,10"
+                    BoxShadow="0 2 10 0 #40000000"
+                    PointerPressed="TitleBar_PointerPressed">
+                <Border.Background>
+                    <LinearGradientBrush StartPoint="0%,0%" EndPoint="0%,100%">
+                        <GradientStop Color="#F1F3E0" Offset="0"/>
+                        <GradientStop Color="#E8EDD4" Offset="1"/>
+                    </LinearGradientBrush>
+                </Border.Background>
+                <Grid ColumnDefinitions="*,Auto,Auto">
+                    <TextBlock Grid.Column="0"
+                              Text="🎵 SweetTypeTone"
+                              FontSize="16"
+                              FontWeight="Bold"
+                              Foreground="#778873"
+                              VerticalAlignment="Center"/>
+                    
+                    <!-- Minimize Button -->
+                    <Button Grid.Column="1"
+                           Content="−"
+                           Width="30"
+                           Height="30"
+                           Margin="0 0 5 0"
+                           FontSize="18"
+                           HorizontalContentAlignment="Center"
+                           VerticalContentAlignment="Center"
+                           FontWeight="Bold"
+                           Padding="0"
+                           Click="MinimizeButton_Click"
+                           ToolTip.Tip="Minimize"/>
+                    
+                    <!-- Close Button -->
+                    <Button Grid.Column="2"
+                           Content="✕"
+                           Width="30"
+                           Height="30"
+                           FontSize="14"
+                           FontWeight="Bold"
+                           Padding="0"
+                           HorizontalContentAlignment="Center"
+                           VerticalContentAlignment="Center"
+                           Click="CloseButton_Click"
+                           ToolTip.Tip="Close"/>
+                </Grid>
+            </Border>
+            
+            <!-- Keyboard Tester -->
+            <Border Grid.Row="1" 
+                    CornerRadius="16" 
+                    Padding="15"
+                    Margin="0,15,0,0"
+                    BoxShadow="0 4 20 0 #40000000">
+                <Border.Background>
+                    <LinearGradientBrush StartPoint="0%,0%" EndPoint="0%,100%">
+                        <GradientStop Color="#F1F3E0" Offset="0"/>
+                        <GradientStop Color="#E8EDD4" Offset="1"/>
+                    </LinearGradientBrush>
+                </Border.Background>
+                <StackPanel Spacing="8">
+                    <TextBlock Text="Keyboard Tester"
+                              FontSize="14"
+                              FontWeight="SemiBold"
+                              Foreground="#778873"
+                              HorizontalAlignment="Center"/>
+                    <TextBlock Text="Press any key to test..."
+                              FontSize="11"
+                              Foreground="#A1BC98"
+                              HorizontalAlignment="Center"/>
+                    <Border Background="#D2DCB6"
+                           CornerRadius="8"
+                           Padding="10"
+                           MinHeight="40"
+                           HorizontalAlignment="Stretch">
+                        <TextBlock x:Name="KeyTesterText"
+                                  Text="..."
+                                  FontSize="18"
+                                  FontWeight="Bold"
+                                  Foreground="#778873"
+                                  HorizontalAlignment="Center"
+                                  VerticalAlignment="Center"/>
+                    </Border>
+                </StackPanel>
+            </Border>
+
+            <!-- Main Content Area -->
+            <StackPanel Grid.Row="2" Spacing="12" Margin="0,15,0,0">
+                
+                <!-- Sound Pack Selection -->
+                <Border CornerRadius="16" 
+                        Padding="15"
+                        BoxShadow="0 4 15 0 #40000000">
+                    <Border.Background>
+                        <LinearGradientBrush StartPoint="0%,0%" EndPoint="0%,100%">
+                            <GradientStop Color="#F1F3E0" Offset="0"/>
+                            <GradientStop Color="#E8EDD4" Offset="1"/>
+                        </LinearGradientBrush>
+                    </Border.Background>
+                    <StackPanel Spacing="8">
+                        <TextBlock Text="Sound Pack" 
+                                  FontSize="16" 
+                                  FontWeight="SemiBold"
+                                  Foreground="#778873"/>
+                            
+                            <ComboBox ItemsSource="{Binding SoundPacks}"
+                                     SelectedItem="{Binding SelectedSoundPack}"
+                                     HorizontalAlignment="Stretch"
+                                     Padding="12"
+                                     Height="40"
+                                     SelectionChanged="SoundPackComboBox_SelectionChanged"
+                                     Name="SoundPackComboBox">
+                                <ComboBox.ItemTemplate>
+                                    <DataTemplate>
+                                        <Grid>
+                                            <StackPanel VerticalAlignment="Center" Margin="0,2">
+                                                <TextBlock Text="{Binding Name}" 
+                                                          FontWeight="SemiBold"
+                                                          FontSize="13"/>
+                                                <TextBlock Text="{Binding Description}" 
+                                                          FontSize="10"
+                                                          Foreground="#AAAAAA"
+                                                          Margin="0,-2,0,0"/>
+                                            </StackPanel>
+                                        </Grid>
+                                    </DataTemplate>
+                                </ComboBox.ItemTemplate>
+                            </ComboBox>
+
+                            <Grid ColumnDefinitions="*,10,Auto">
+                                <Button Grid.Column="0"
+                                       Content="Import Sound Pack"
+                                       Command="{Binding ImportSoundPackCommand}"
+                                       HorizontalAlignment="Stretch"
+                                       HorizontalContentAlignment="Center"
+                                       VerticalContentAlignment="Center"
+                                       Height="40"/>
+                                <Button Grid.Column="2"
+                                       Command="{Binding RefreshSoundPacksCommand}"
+                                       ToolTip.Tip="Refresh sound packs"
+                                       Width="40"
+                                       Height="40"
+                                       Padding="8">
+                                    <Border Width="24" Height="24" Background="White">
+                                        <Border.OpacityMask>
+                                            <ImageBrush Source="/Assets/icons8-refresh-100.png" Stretch="Uniform"/>
+                                        </Border.OpacityMask>
+                                    </Border>
+                                </Button>
+                            </Grid>
+                        </StackPanel>
+                    </Border>
+
+                <!-- Volume Control -->
+                <Border CornerRadius="16" 
+                        Padding="15"
+                        BoxShadow="0 4 15 0 #40000000">
+                    <Border.Background>
+                        <LinearGradientBrush StartPoint="0%,0%" EndPoint="0%,100%">
+                            <GradientStop Color="#F1F3E0" Offset="0"/>
+                            <GradientStop Color="#E8EDD4" Offset="1"/>
+                        </LinearGradientBrush>
+                    </Border.Background>
+                    <StackPanel Spacing="8">
+                        <Grid ColumnDefinitions="*,Auto">
+                            <TextBlock Grid.Column="0"
+                                      Text="Volume" 
+                                      FontSize="16" 
+                                      FontWeight="SemiBold"
+                                      Foreground="#778873"/>
+                            <TextBlock Grid.Column="1"
+                                      Text="{Binding Volume, StringFormat='{}{0:P0}'}"
+                                      FontSize="14"
+                                      Foreground="#A1BC98"
+                                      FontWeight="Bold"/>
+                        </Grid>
+                        
+                        <Slider Value="{Binding Volume}"
+                               Minimum="0"
+                               Maximum="1"
+                               TickFrequency="0.1"
+                               IsSnapToTickEnabled="False"/>
+                        
+                        <Button Content="{Binding IsMuted, Converter={StaticResource MuteButtonConverter}}"
+                               Command="{Binding ToggleMuteCommand}"
+                               HorizontalAlignment="Stretch"
+                               VerticalContentAlignment="Center"
+                               HorizontalContentAlignment="Center"
+                               Height="36"/>
+                    </StackPanel>
+                </Border>
+
+                <!-- Status -->
+                <Border CornerRadius="12"
+                       Padding="12"
+                       BoxShadow="0 2 10 0 #30000000">
+                    <Border.Background>
+                        <LinearGradientBrush StartPoint="0%,0%" EndPoint="0%,100%">
+                            <GradientStop Color="#D2DCB6" Offset="0"/>
+                            <GradientStop Color="#C8D4AC" Offset="1"/>
+                        </LinearGradientBrush>
+                    </Border.Background>
+                    <Grid ColumnDefinitions="Auto,*">
+                        <Ellipse Grid.Column="0"
+                                Width="10" 
+                                Height="10"
+                                Margin="0,0,10,0"
+                                VerticalAlignment="Center"
+                                Fill="{Binding IsMonitoring, Converter={StaticResource StatusColorConverter}}"/>
+                        <TextBlock Grid.Column="1"
+                                  Text="{Binding StatusMessage}"
+                                  FontSize="12"
+                                  Foreground="#778873"
+                                  FontWeight="Medium"
+                                  TextWrapping="Wrap"
+                                  VerticalAlignment="Center"/>
+                    </Grid>
+                </Border>
+
+            </StackPanel>
+
+            <!-- Footer -->
+            <Border Grid.Row="3" 
+                    CornerRadius="12" 
+                    Padding="10"
+                    Margin="0,12,0,0"
+                    BoxShadow="0 2 10 0 #30000000">
+                <Border.Background>
+                    <LinearGradientBrush StartPoint="0%,0%" EndPoint="0%,100%">
+                        <GradientStop Color="#F1F3E0" Offset="0"/>
+                        <GradientStop Color="#E8EDD4" Offset="1"/>
+                    </LinearGradientBrush>
+                </Border.Background>
+                <Grid ColumnDefinitions="Auto,*,Auto">
+                    <TextBlock Grid.Column="0"
+                              Text="v1.0.0"
+                              FontSize="10"
+                              Foreground="#A1BC98"
+                              VerticalAlignment="Center"/>
+                    <TextBlock Grid.Column="2"
+                              Text="Made with ❤️ for Linux"
+                              FontSize="10"
+                              Foreground="#A1BC98"
+                              VerticalAlignment="Center"/>
+                </Grid>
+            </Border>
+
+        </Grid>
+
+        <!-- Loading Overlay -->
+        <Border IsVisible="{Binding IsLoading}"
+                Background="#CC778873">
+            <Border CornerRadius="20"
+                    Padding="30"
+                    HorizontalAlignment="Center"
+                    VerticalAlignment="Center"
+                    BoxShadow="0 8 30 0 #60000000">
+                <Border.Background>
+                    <LinearGradientBrush StartPoint="0%,0%" EndPoint="0%,100%">
+                        <GradientStop Color="#F1F3E0" Offset="0"/>
+                        <GradientStop Color="#E8EDD4" Offset="1"/>
+                    </LinearGradientBrush>
+                </Border.Background>
+                <StackPanel Spacing="15">
+                    <TextBlock Text="⏳"
+                              FontSize="48"
+                              HorizontalAlignment="Center"/>
+                    <TextBlock Text="Loading..."
+                              FontSize="18"
+                              Foreground="#778873"
+                              FontWeight="SemiBold"
+                              HorizontalAlignment="Center"/>
+                </StackPanel>
+            </Border>
+        </Border>
+    </Panel>
+
+</Window>

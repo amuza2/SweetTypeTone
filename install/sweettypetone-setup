@@ -1,0 +1,38 @@
+#!/bin/bash
+# SweetTypeTone Permission Setup Helper
+# This script runs with elevated privileges via pkexec
+
+set -e
+
+USERNAME="$1"
+
+if [ -z "$USERNAME" ]; then
+    echo "Error: Username not provided"
+    exit 1
+fi
+
+echo "Setting up permissions for user: $USERNAME"
+
+# Create udev rule
+cat > /etc/udev/rules.d/99-sweettypetone.rules << 'EOF'
+# Allow users in the input group to access input devices
+KERNEL=="event*", SUBSYSTEM=="input", MODE="0660", GROUP="input"
+EOF
+
+echo "✓ udev rule created"
+
+# Add user to input group
+if ! groups "$USERNAME" | grep -q '\binput\b'; then
+    usermod -a -G input "$USERNAME"
+    echo "✓ User added to input group"
+else
+    echo "✓ User already in input group"
+fi
+
+# Reload udev rules
+udevadm control --reload-rules
+udevadm trigger
+
+echo "✓ Setup complete"
+echo ""
+echo "IMPORTANT: User must log out and log back in for changes to take effect"
