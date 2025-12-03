@@ -1,6 +1,7 @@
 <Window xmlns="https://github.com/avaloniaui"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:vm="using:SweetTypeTone.ViewModels"
+        xmlns:models="using:SweetTypeTone.Core.Models"
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         mc:Ignorable="d" d:DesignWidth="600" d:DesignHeight="700"
@@ -68,6 +69,11 @@
         <Style Selector="ComboBoxItem">
             <Setter Property="VerticalContentAlignment" Value="Center"/>
             <Setter Property="MinHeight" Value="40"/>
+        </Style>
+        
+        <!-- Style for unsupported sound packs -->
+        <Style Selector="TextBlock.unsupported">
+            <Setter Property="Foreground" Value="#999999"/>
         </Style>
     </Window.Styles>
 
@@ -199,17 +205,32 @@
                                      Height="40"
                                      SelectionChanged="SoundPackComboBox_SelectionChanged"
                                      Name="SoundPackComboBox">
+                                <ComboBox.Styles>
+                                    <Style Selector="ComboBoxItem" x:DataType="models:SoundPack">
+                                        <Setter Property="IsEnabled" Value="{Binding IsSupported}"/>
+                                    </Style>
+                                </ComboBox.Styles>
                                 <ComboBox.ItemTemplate>
                                     <DataTemplate>
-                                        <Grid>
-                                            <StackPanel VerticalAlignment="Center" Margin="0,2">
+                                        <Grid ColumnDefinitions="4,*">
+                                            <!-- Red bar for unsupported packs -->
+                                            <Border Grid.Column="0" 
+                                                   Width="4" 
+                                                   Background="#E74C3C" 
+                                                   CornerRadius="2"
+                                                   Margin="0,0,8,0"
+                                                   IsVisible="{Binding !IsSupported}"/>
+                                            
+                                            <StackPanel Grid.Column="1" VerticalAlignment="Center" Margin="0,2">
                                                 <TextBlock Text="{Binding Name}" 
-                                                          FontWeight="SemiBold"
-                                                          FontSize="13"/>
-                                                <TextBlock Text="{Binding Description}" 
+                                                          FontWeight="SemiBold" 
+                                                          FontSize="13"
+                                                          Classes.unsupported="{Binding !IsSupported}"/>
+                                                <TextBlock Text="{Binding UnsupportedReason}" 
                                                           FontSize="10"
-                                                          Foreground="#AAAAAA"
-                                                          Margin="0,-2,0,0"/>
+                                                          Foreground="#E74C3C"
+                                                          Margin="0,-2,0,0"
+                                                          IsVisible="{Binding !IsSupported}"/>
                                             </StackPanel>
                                         </Grid>
                                     </DataTemplate>

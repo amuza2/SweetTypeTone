@@ -44,6 +44,7 @@ public partial class App : Application
             DisableAvaloniaDataAnnotationValidation();
 
             // Initialize services
+            // Using OpenAL (stable, proven to work)
             _audioService = new OpenALAudioService();
             _inputMonitorService = new LinuxInputMonitorService();
             _soundPackService = new SoundPackService();

@@ -98,12 +98,20 @@ public class SoundPackService : ISoundPackService
             // Version 2: Direct file references
             foreach (var kvp in config.defines)
             {
+                // Skip null values
+                if (kvp.Value == null)
+                    continue;
+                    
                 if (int.TryParse(kvp.Key, out var keyCode))
                 {
+                    var soundPath = kvp.Value.ToString();
+                    if (string.IsNullOrEmpty(soundPath))
+                        continue;
+                        
                     var soundDef = new SoundDefinition
                     {
                         KeyCode = keyCode,
-                        DownSoundPath = kvp.Value.ToString() ?? ""
+                        DownSoundPath = soundPath
                     };
                     soundPack.KeyDefinitions[keyCode] = soundDef;
                 }
@@ -111,13 +119,86 @@ public class SoundPackService : ISoundPackService
                 {
                     if (soundPack.KeyDefinitions.TryGetValue(upKeyCode, out var existing))
                     {
-                        existing.UpSoundPath = kvp.Value.ToString();
+                        var soundPath = kvp.Value.ToString();
+                        if (!string.IsNullOrEmpty(soundPath))
+                            existing.UpSoundPath = soundPath;
                     }
                 }
             }
         }
+        
+        // Check if this is an MP3 pack (unsupported)
+        CheckIfMP3Pack(soundPack, sourcePath);
 
         return soundPack;
+    }
+    
+    private void CheckIfMP3Pack(SoundPack soundPack, string sourcePath)
+    {
+        // Check if any sound files are MP3
+        bool hasMp3Files = false;
+        
+        // Check in defines (for multi-file packs)
+        foreach (var def in soundPack.KeyDefinitions.Values)
+        {
+            if (!string.IsNullOrEmpty(def.DownSoundPath) && def.DownSoundPath.EndsWith(".mp3", StringComparison.OrdinalIgnoreCase))
+            {
+                hasMp3Files = true;
+                break;
+            }
+            if (!string.IsNullOrEmpty(def.UpSoundPath) && def.UpSoundPath.EndsWith(".mp3", StringComparison.OrdinalIgnoreCase))
+            {
+                hasMp3Files = true;
+                break;
+            }
+        }
+        
+        // For sprite-based packs, check the main sound file
+        if (!hasMp3Files && soundPack.KeyDefinitions.Values.Any(d => d.SpriteStart.HasValue))
+        {
+            // This is a sprite pack - check if any key definition references an MP3 sprite file
+            var spriteFiles = soundPack.KeyDefinitions.Values
+                .Where(d => !string.IsNullOrEmpty(d.DownSoundPath))
+                .Select(d => d.DownSoundPath)
+                .Distinct();
+            
+            foreach (var file in spriteFiles)
+            {
+                if (file != null && file.EndsWith(".mp3", StringComparison.OrdinalIgnoreCase))
+                {
+                    hasMp3Files = true;
+                    break;
+                }
+            }
+        }
+        
+        // Only check directory for MP3 files if we haven't found any in definitions
+        // and there are no sprite definitions (to avoid false positives)
+        if (!hasMp3Files && 
+            soundPack.KeyDefinitions.Count > 0 && 
+            !soundPack.KeyDefinitions.Values.Any(d => d.SpriteStart.HasValue) &&
+            Directory.Exists(sourcePath))
+        {
+            // For multi-file packs, check if MP3 files exist
+            var mp3Files = Directory.GetFiles(sourcePath, "*.mp3", SearchOption.AllDirectories);
+            if (mp3Files.Length > 0)
+            {
+                // Double-check: only mark as unsupported if these MP3 files are actually referenced
+                var referencedFiles = soundPack.KeyDefinitions.Values
+                    .SelectMany(d => new[] { d.DownSoundPath, d.UpSoundPath })
+                    .Where(f => !string.IsNullOrEmpty(f))
+                    .Select(f => Path.GetFileName(f))
+                    .ToHashSet();
+                
+                hasMp3Files = mp3Files.Any(mp3 => referencedFiles.Contains(Path.GetFileName(mp3)));
+            }
+        }
+        
+        if (hasMp3Files)
+        {
+            soundPack.IsSupported = false;
+            soundPack.UnsupportedReason = "MP3 format not supported";
+        }
     }
 
     private async Task ExtractSpritesToFilesAsync(MechvibesConfig config, string sourcePath, SoundPack soundPack)

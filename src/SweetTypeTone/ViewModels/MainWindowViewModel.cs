@@ -78,20 +78,32 @@ public partial class MainWindowViewModel : ViewModelBase
             var packs = await _soundPackService.GetAllSoundPacksAsync();
             Console.WriteLine($"Found {packs.Count} sound packs");
             
+            // Sort by supported status first, then alphabetically
+            var sortedPacks = packs
+                .OrderByDescending(p => p.IsSupported)  // Supported first
+                .ThenBy(p => p.Name)                     // Then alphabetically
+                .ToList();
+            
             SoundPacks.Clear();
-            foreach (var pack in packs)
+            foreach (var pack in sortedPacks)
             {
-                Console.WriteLine($"  - {pack.Name} (ID: {pack.Id})");
+                var supportedText = pack.IsSupported ? "" : $" [{pack.UnsupportedReason}]";
+                Console.WriteLine($"  - {pack.Name}{supportedText} (ID: {pack.Id})");
                 SoundPacks.Add(pack);
             }
 
-            // Select saved sound pack or first available
+            // Select saved sound pack or first available (supported only)
             if (!string.IsNullOrEmpty(settings.CurrentSoundPackId))
             {
-                SelectedSoundPack = SoundPacks.FirstOrDefault(p => p.Id == settings.CurrentSoundPackId);
+                var savedPack = SoundPacks.FirstOrDefault(p => p.Id == settings.CurrentSoundPackId);
+                if (savedPack?.IsSupported == true)
+                {
+                    SelectedSoundPack = savedPack;
+                }
             }
             
-            SelectedSoundPack ??= SoundPacks.FirstOrDefault();
+            // If no valid selection, pick first supported pack
+            SelectedSoundPack ??= SoundPacks.FirstOrDefault(p => p.IsSupported);
 
             if (SelectedSoundPack != null)
             {
@@ -174,11 +186,22 @@ public partial class MainWindowViewModel : ViewModelBase
         _ = _settingsService.SaveSettingsAsync(settings);
     }
 
-    partial void OnSelectedSoundPackChanged(SoundPack? value)
+    partial void OnSelectedSoundPackChanged(SoundPack? oldValue, SoundPack? newValue)
     {
-        if (value != null)
+        if (newValue != null)
         {
-            _ = LoadSoundPackAsync(value);
+            // Prevent selecting unsupported packs
+            if (!newValue.IsSupported)
+            {
+                StatusMessage = $"Cannot load: {newValue.UnsupportedReason}";
+                // Revert to previous selection or first supported pack
+                SelectedSoundPack = oldValue?.IsSupported == true 
+                    ? oldValue 
+                    : SoundPacks.FirstOrDefault(p => p.IsSupported);
+                return;
+            }
+            
+            _ = LoadSoundPackAsync(newValue);
         }
     }
     
@@ -273,33 +296,12 @@ public partial class MainWindowViewModel : ViewModelBase
         {
             StatusMessage = $"Refresh error: {ex.Message}";
         }
-        finally
-        {
-            IsLoading = false;
-        }
-    }
-
-    [RelayCommand]
-    private async Task OpenEditorAsync()
-    {
-        // This will open the sound pack editor
-        StatusMessage = "Editor feature coming soon...";
-        await Task.CompletedTask;
-    }
-
-    [RelayCommand]
-    private async Task OpenSettingsAsync()
-    {
-        // This will open settings window
-        StatusMessage = "Settings feature coming soon...";
-        await Task.CompletedTask;
     }
 
     private void OnInputDetected(object? sender, InputEvent e)
     {
         if (IsMuted || !IsMonitoring)
             return;
-
         _audioService.PlaySound(e.KeyCode, e.Action);
     }
 

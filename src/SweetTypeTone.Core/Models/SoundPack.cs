@@ -12,6 +12,8 @@ public class SoundPack
     public string Version { get; set; } = "1.0.0";
     public string FolderPath { get; set; } = string.Empty;
     public bool IsCustom { get; set; }
+    public bool IsSupported { get; set; } = true;
+    public string? UnsupportedReason { get; set; }
     public SoundPackType Type { get; set; } = SoundPackType.Keyboard;
     public Dictionary<int, SoundDefinition> KeyDefinitions { get; set; } = new();
     public DateTime CreatedAt { get; set; } = DateTime.Now;

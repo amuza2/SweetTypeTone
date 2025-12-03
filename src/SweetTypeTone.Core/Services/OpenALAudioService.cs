@@ -1,6 +1,5 @@
 using OpenTK.Audio.OpenAL;
 using NVorbis;
-using NAudio.Wave;
 using SweetTypeTone.Core.Interfaces;
 using SweetTypeTone.Core.Models;
 using System;
@@ -113,13 +112,26 @@ public class OpenALAudioService : IAudioService
 
     private void LoadSpritePack(SoundPack soundPack)
     {
-        // Load the main sprite file
-        var spritePath = Path.Combine(soundPack.FolderPath, "sound.ogg");
+        // Get the sprite filename from the first key definition
+        string? spriteFileName = soundPack.KeyDefinitions.Values
+            .FirstOrDefault(d => d.SpriteStart.HasValue)?.DownSoundPath;
+        
+        if (string.IsNullOrEmpty(spriteFileName))
+        {
+            Console.WriteLine($"  ✗ No sprite file defined in sound pack");
+            return;
+        }
+        
+        // Build full path to sprite file
+        var spritePath = Path.Combine(soundPack.FolderPath, spriteFileName);
+        
         if (!File.Exists(spritePath))
         {
             Console.WriteLine($"  ✗ Sprite file not found: {spritePath}");
             return;
         }
+        
+        Console.WriteLine($"  ✓ Found sprite file: {spriteFileName}");
 
         // Load entire sprite file as raw audio data (not as OpenAL buffer yet)
         using var vorbis = new VorbisReader(spritePath);
@@ -160,6 +172,9 @@ public class OpenALAudioService : IAudioService
 
     private void LoadFilePack(SoundPack soundPack)
     {
+        int successCount = 0;
+        int failCount = 0;
+        
         foreach (var kvp in soundPack.KeyDefinitions)
         {
             try
@@ -174,7 +189,18 @@ public class OpenALAudioService : IAudioService
                         if (buffer != null)
                         {
                             _soundCache[kvp.Key] = buffer;
+                            successCount++;
                         }
+                        else
+                        {
+                            Console.WriteLine($"  ✗ Failed to load: {kvp.Value.DownSoundPath}");
+                            failCount++;
+                        }
+                    }
+                    else
+                    {
+                        Console.WriteLine($"  ✗ File not found: {fullPath}");
+                        failCount++;
                     }
                 }
 
@@ -188,15 +214,29 @@ public class OpenALAudioService : IAudioService
                         if (buffer != null)
                         {
                             _soundUpCache[kvp.Key] = buffer;
+                            successCount++;
                         }
+                        else
+                        {
+                            Console.WriteLine($"  ✗ Failed to load: {kvp.Value.UpSoundPath}");
+                            failCount++;
+                        }
+                    }
+                    else
+                    {
+                        Console.WriteLine($"  ✗ File not found: {fullPath}");
+                        failCount++;
                     }
                 }
             }
             catch (Exception ex)
             {
                 Console.WriteLine($"  ✗ Error loading sound for key {kvp.Key}: {ex.Message}");
+                failCount++;
             }
         }
+        
+        Console.WriteLine($"  Load summary: {successCount} succeeded, {failCount} failed");
     }
 
     private AudioBuffer? LoadAudioFile(string filePath)
@@ -264,53 +304,101 @@ public class OpenALAudioService : IAudioService
 
     private AudioBuffer LoadWavFile(string filePath)
     {
-        // Simple WAV loader (assumes 16-bit PCM)
         using var reader = new BinaryReader(File.OpenRead(filePath));
         
-        // Skip RIFF header
-        reader.ReadBytes(12);
+        // Read RIFF header
+        var riff = new string(reader.ReadChars(4));
+        if (riff != "RIFF")
+            throw new Exception($"Invalid WAV file: expected RIFF, got {riff}");
         
-        // Read fmt chunk
-        reader.ReadBytes(8);
-        int channels = reader.ReadInt16();
-        int sampleRate = reader.ReadInt32();
-        reader.ReadBytes(6);
-        int bitsPerSample = reader.ReadInt16();
+        var fileSize = reader.ReadInt32();
+        var wave = new string(reader.ReadChars(4));
+        if (wave != "WAVE")
+            throw new Exception($"Invalid WAV file: expected WAVE, got {wave}");
         
-        // Find data chunk
+        int channels = 0;
+        int sampleRate = 0;
+        int bitsPerSample = 0;
+        short audioFormat = 0;
+        
+        // Read chunks until we find fmt and data
+        short[]? pcmData = null;
+        
         while (reader.BaseStream.Position < reader.BaseStream.Length)
         {
             var chunkId = new string(reader.ReadChars(4));
             var chunkSize = reader.ReadInt32();
+            var chunkStart = reader.BaseStream.Position;
             
-            if (chunkId == "data")
+            if (chunkId == "fmt ")
             {
-                var pcmData = new short[chunkSize / 2];
-                for (int i = 0; i < pcmData.Length; i++)
+                audioFormat = reader.ReadInt16();
+                channels = reader.ReadInt16();
+                sampleRate = reader.ReadInt32();
+                var byteRate = reader.ReadInt32();
+                var blockAlign = reader.ReadInt16();
+                bitsPerSample = reader.ReadInt16();
+                
+                // Only support PCM format (1)
+                if (audioFormat != 1)
+                    throw new Exception($"Unsupported WAV format: {audioFormat} (only PCM is supported)");
+                
+                // Skip any extra fmt data
+                reader.BaseStream.Position = chunkStart + chunkSize;
+            }
+            else if (chunkId == "data")
+            {
+                if (bitsPerSample == 16)
                 {
-                    pcmData[i] = reader.ReadInt16();
+                    pcmData = new short[chunkSize / 2];
+                    for (int i = 0; i < pcmData.Length; i++)
+                    {
+                        pcmData[i] = reader.ReadInt16();
+                    }
+                }
+                else if (bitsPerSample == 8)
+                {
+                    // Convert 8-bit unsigned to 16-bit signed
+                    pcmData = new short[chunkSize];
+                    for (int i = 0; i < chunkSize; i++)
+                    {
+                        byte sample = reader.ReadByte();
+                        pcmData[i] = (short)((sample - 128) * 256);
+                    }
+                }
+                else
+                {
+                    throw new Exception($"Unsupported bits per sample: {bitsPerSample}");
                 }
                 
-                int bufferId = AL.GenBuffer();
-                var format = channels == 1 ? ALFormat.Mono16 : ALFormat.Stereo16;
-                
-                AL.BufferData(bufferId, format, pcmData, sampleRate);
-                CheckALError("BufferData");
-                
-                return new AudioBuffer
-                {
-                    BufferId = bufferId,
-                    SampleRate = sampleRate,
-                    Channels = channels
-                };
+                break; // Found data, we're done
             }
             else
             {
-                reader.BaseStream.Seek(chunkSize, SeekOrigin.Current);
+                // Skip unknown chunks
+                reader.BaseStream.Position = chunkStart + chunkSize;
             }
         }
         
-        throw new Exception("No data chunk found in WAV file");
+        if (pcmData == null)
+            throw new Exception("No data chunk found in WAV file");
+        
+        if (channels == 0 || sampleRate == 0)
+            throw new Exception("Invalid WAV file: missing fmt chunk");
+        
+        // Create OpenAL buffer
+        int bufferId = AL.GenBuffer();
+        var format = channels == 1 ? ALFormat.Mono16 : ALFormat.Stereo16;
+        
+        AL.BufferData(bufferId, format, pcmData, sampleRate);
+        CheckALError("BufferData");
+        
+        return new AudioBuffer
+        {
+            BufferId = bufferId,
+            SampleRate = sampleRate,
+            Channels = channels
+        };
     }
 
     private AudioBuffer LoadMp3File(string filePath)
