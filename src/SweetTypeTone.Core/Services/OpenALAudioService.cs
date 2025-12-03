@@ -81,31 +81,27 @@ public class OpenALAudioService : IAudioService
 
         await Task.Run(() =>
         {
-            Console.WriteLine($"Loading sound pack: {soundPack.Name}");
-            Console.WriteLine($"  Keys to load: {soundPack.KeyDefinitions.Count}");
+            Console.WriteLine($"Loading: {soundPack.Name}");
             
             // Check if sprite-based
             var hasSpriteDefinitions = soundPack.KeyDefinitions.Values.Any(d => d.SpriteStart.HasValue);
             
             if (hasSpriteDefinitions)
             {
-                Console.WriteLine("  Loading sprite-based sound pack...");
                 LoadSpritePack(soundPack);
             }
             else
             {
-                Console.WriteLine("  Loading file-based sound pack...");
                 LoadFilePack(soundPack);
             }
             
             if (_isSpritePack)
             {
-                Console.WriteLine($"  ✓ Sprite pack ready for on-demand playback");
+                Console.WriteLine($"  ✓ Ready ({soundPack.KeyDefinitions.Count} keys)");
             }
             else
             {
-                Console.WriteLine($"  ✓ Loaded {_soundCache.Count} key down sounds");
-                Console.WriteLine($"  ✓ Loaded {_soundUpCache.Count} key up sounds");
+                Console.WriteLine($"  ✓ Ready ({_soundCache.Count} sounds loaded)");
             }
         });
     }
@@ -118,7 +114,7 @@ public class OpenALAudioService : IAudioService
         
         if (string.IsNullOrEmpty(spriteFileName))
         {
-            Console.WriteLine($"  ✗ No sprite file defined in sound pack");
+            Console.WriteLine($"  ✗ No sprite file defined");
             return;
         }
         
@@ -127,11 +123,9 @@ public class OpenALAudioService : IAudioService
         
         if (!File.Exists(spritePath))
         {
-            Console.WriteLine($"  ✗ Sprite file not found: {spritePath}");
+            Console.WriteLine($"  ✗ Sprite file not found");
             return;
         }
-        
-        Console.WriteLine($"  ✓ Found sprite file: {spriteFileName}");
 
         // Load entire sprite file as raw audio data (not as OpenAL buffer yet)
         using var vorbis = new VorbisReader(spritePath);
@@ -165,9 +159,6 @@ public class OpenALAudioService : IAudioService
         };
         
         _isSpritePack = true;
-        
-        Console.WriteLine($"  ✓ Sprite loaded successfully");
-        Console.WriteLine($"  ✓ {soundPack.KeyDefinitions.Count} key definitions ready");
     }
 
     private void LoadFilePack(SoundPack soundPack)
@@ -175,68 +166,71 @@ public class OpenALAudioService : IAudioService
         int successCount = 0;
         int failCount = 0;
         
+        // Collect all files to load
+        var filesToLoad = new List<(int keyCode, string path, bool isUpSound)>();
+        
         foreach (var kvp in soundPack.KeyDefinitions)
+        {
+            if (!string.IsNullOrEmpty(kvp.Value.DownSoundPath))
+            {
+                var fullPath = Path.Combine(soundPack.FolderPath, kvp.Value.DownSoundPath);
+                if (File.Exists(fullPath))
+                {
+                    filesToLoad.Add((kvp.Key, fullPath, false));
+                }
+            }
+            
+            if (!string.IsNullOrEmpty(kvp.Value.UpSoundPath))
+            {
+                var fullPath = Path.Combine(soundPack.FolderPath, kvp.Value.UpSoundPath);
+                if (File.Exists(fullPath))
+                {
+                    filesToLoad.Add((kvp.Key, fullPath, true));
+                }
+            }
+        }
+        
+        // Load files in parallel for faster loading
+        var loadResults = new ConcurrentBag<(int keyCode, AudioBuffer? buffer, bool isUpSound, bool success)>();
+        
+        Parallel.ForEach(filesToLoad, new ParallelOptions { MaxDegreeOfParallelism = 4 }, fileInfo =>
         {
             try
             {
-                // Load key down sound
-                if (!string.IsNullOrEmpty(kvp.Value.DownSoundPath))
-                {
-                    var fullPath = Path.Combine(soundPack.FolderPath, kvp.Value.DownSoundPath);
-                    if (File.Exists(fullPath))
-                    {
-                        var buffer = LoadAudioFile(fullPath);
-                        if (buffer != null)
-                        {
-                            _soundCache[kvp.Key] = buffer;
-                            successCount++;
-                        }
-                        else
-                        {
-                            Console.WriteLine($"  ✗ Failed to load: {kvp.Value.DownSoundPath}");
-                            failCount++;
-                        }
-                    }
-                    else
-                    {
-                        Console.WriteLine($"  ✗ File not found: {fullPath}");
-                        failCount++;
-                    }
-                }
-
-                // Load key up sound
-                if (!string.IsNullOrEmpty(kvp.Value.UpSoundPath))
-                {
-                    var fullPath = Path.Combine(soundPack.FolderPath, kvp.Value.UpSoundPath);
-                    if (File.Exists(fullPath))
-                    {
-                        var buffer = LoadAudioFile(fullPath);
-                        if (buffer != null)
-                        {
-                            _soundUpCache[kvp.Key] = buffer;
-                            successCount++;
-                        }
-                        else
-                        {
-                            Console.WriteLine($"  ✗ Failed to load: {kvp.Value.UpSoundPath}");
-                            failCount++;
-                        }
-                    }
-                    else
-                    {
-                        Console.WriteLine($"  ✗ File not found: {fullPath}");
-                        failCount++;
-                    }
-                }
+                var buffer = LoadAudioFile(fileInfo.path);
+                loadResults.Add((fileInfo.keyCode, buffer, fileInfo.isUpSound, buffer != null));
             }
-            catch (Exception ex)
+            catch
             {
-                Console.WriteLine($"  ✗ Error loading sound for key {kvp.Key}: {ex.Message}");
+                loadResults.Add((fileInfo.keyCode, null, fileInfo.isUpSound, false));
+            }
+        });
+        
+        // Store loaded buffers
+        foreach (var result in loadResults)
+        {
+            if (result.success && result.buffer != null)
+            {
+                if (result.isUpSound)
+                    _soundUpCache[result.keyCode] = result.buffer;
+                else
+                    _soundCache[result.keyCode] = result.buffer;
+                successCount++;
+            }
+            else
+            {
                 failCount++;
             }
         }
         
-        Console.WriteLine($"  Load summary: {successCount} succeeded, {failCount} failed");
+        if (failCount > 0)
+        {
+            Console.WriteLine($"  Load summary: {successCount} succeeded, {failCount} failed");
+        }
+        else
+        {
+            Console.WriteLine($"  ✓ Loaded {successCount} sounds");
+        }
     }
 
     private AudioBuffer? LoadAudioFile(string filePath)
