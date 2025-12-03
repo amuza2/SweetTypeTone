@@ -54,7 +54,7 @@ public class SoundPackService : ISoundPackService
         }
 
         var jsonContent = await File.ReadAllTextAsync(configPath);
-        var mechvibesConfig = JsonSerializer.Deserialize<MechvibesConfig>(jsonContent);
+        var mechvibesConfig = JsonSerializer.Deserialize(jsonContent, AppJsonContext.Default.MechvibesConfig);
 
         if (mechvibesConfig == null)
         {
@@ -254,7 +254,8 @@ public class SoundPackService : ISoundPackService
 
         // Save converted config
         var configPath = Path.Combine(destPath, "soundpack.json");
-        var json = JsonSerializer.Serialize(soundPack, new JsonSerializerOptions { WriteIndented = true });
+        var options = new JsonSerializerOptions(AppJsonContext.Default.Options) { WriteIndented = true };
+        var json = JsonSerializer.Serialize(soundPack, options);
         await File.WriteAllTextAsync(configPath, json);
     }
 
@@ -350,7 +351,7 @@ public class SoundPackService : ISoundPackService
                 if (File.Exists(soundpackPath))
                 {
                     var json = await File.ReadAllTextAsync(soundpackPath);
-                    var soundPack = JsonSerializer.Deserialize<SoundPack>(json);
+                    var soundPack = JsonSerializer.Deserialize(json, AppJsonContext.Default.SoundPack);
                     
                     if (soundPack != null)
                     {
@@ -368,7 +369,7 @@ public class SoundPackService : ISoundPackService
                     {
                         Console.WriteLine($"Found Mechvibes pack: {packDir}");
                         var json = await File.ReadAllTextAsync(mechvibesConfigPath);
-                        var mechvibesConfig = JsonSerializer.Deserialize<MechvibesConfig>(json);
+                        var mechvibesConfig = JsonSerializer.Deserialize(json, AppJsonContext.Default.MechvibesConfig);
                         
                         if (mechvibesConfig != null)
                         {
@@ -390,7 +391,8 @@ public class SoundPackService : ISoundPackService
     private async Task SaveSoundPackAsync(SoundPack soundPack)
     {
         var configPath = Path.Combine(soundPack.FolderPath, "soundpack.json");
-        var json = JsonSerializer.Serialize(soundPack, new JsonSerializerOptions { WriteIndented = true });
+        var options = new JsonSerializerOptions(AppJsonContext.Default.Options) { WriteIndented = true };
+        var json = JsonSerializer.Serialize(soundPack, options);
         await File.WriteAllTextAsync(configPath, json);
     }
 }
