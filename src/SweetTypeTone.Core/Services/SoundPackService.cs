@@ -37,9 +37,15 @@ public class SoundPackService : ISoundPackService
             if (File.Exists(markerFile))
                 return;
             
-            // Find bundled sound packs directory (next to executable)
-            var exeDir = AppContext.BaseDirectory;
-            var bundledPacksDir = Path.Combine(exeDir, "BundledSoundPacks");
+            // Find bundled sound packs directory
+            // Try AppImage location first, then executable directory
+            var bundledPacksDir = Environment.GetEnvironmentVariable("SWEETTYPETONE_BUNDLED_PACKS");
+            
+            if (string.IsNullOrEmpty(bundledPacksDir) || !Directory.Exists(bundledPacksDir))
+            {
+                var exeDir = AppContext.BaseDirectory;
+                bundledPacksDir = Path.Combine(exeDir, "BundledSoundPacks");
+            }
             
             if (!Directory.Exists(bundledPacksDir))
             {

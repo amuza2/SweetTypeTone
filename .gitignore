@@ -129,3 +129,8 @@ CLEANUP_SUMMARY.md
 DEPLOYMENT.md
 GITHUB_SETUP_COMPLETE.md
 
+# AppImage build artifacts
+*.AppImage
+*.AppDir/
+appimagetool
+publish/
