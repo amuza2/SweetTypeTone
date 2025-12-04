@@ -1,18 +1,19 @@
+<div align="center">
 
+  
+  ![Sweet Type Tone Logo](https://github.com/amuza2/SweetTypeTone/blob/main/src/SweetTypeTone/Assets/icons8-key-press-96.png)
 # 🎵 SweetTypeTone
 
 
 [![Build](https://github.com/amuza2/SweetTypeTone/actions/workflows/build.yml/badge.svg)](https://github.com/amuza2/SweetTypeTone/actions/workflows/build.yml) [![Release](https://github.com/amuza2/SweetTypeTone/actions/workflows/release.yml/badge.svg)](https://github.com/amuza2/SweetTypeTone/actions/workflows/release.yml) [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![.NET](https://img.shields.io/badge/.NET-10.0-512BD4)](https://dotnet.microsoft.com/) [![Platform](https://img.shields.io/badge/Platform-Linux-orange)](https://www.linux.org/) [![Ko-fi](https://img.shields.io/badge/Ko--fi-Support-FF5E5B?logo=ko-fi)](https://ko-fi.com/codingisamazing)
 
-  
 
 A modern Linux application that brings mechanical keyboard sounds to your typing experience. Built with Avalonia UI and .NET 10.
+ 
 
-  
-
-![SweetTypeTone Demo](https://via.placeholder.com/800x400?text=SweetTypeTone+Screenshot)
-
+<img width="30%" height="40%" alt="image" src="https://github.com/user-attachments/assets/32973777-874b-4965-9c25-ca6ba77f86f6" />
+</div> 
   
 
 ## ✨ Features
@@ -94,14 +95,7 @@ dotnet  run  --project  src/SweetTypeTone/SweetTypeTone.csproj
 
 ### Sound Packs
 
-  
-
 Copy sound packs (OGG/WAV) to `~/.config/SweetTypeTone/CustomSoundPacks/` and click refresh.
-
-  
-
-**Note:** MP3 format not supported. Convert with: `ffmpeg -i input.mp3 output.ogg`
-
   
 
 ## 🛠️ Tech Stack
@@ -173,5 +167,6 @@ MIT License - see [LICENSE](LICENSE) for details.
 ---
 
   
-
+<div align="center">
 Made with ❤️ for the Linux community
+</div>
