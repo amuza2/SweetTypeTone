@@ -30,6 +30,11 @@ jobs:
           -p:PublishTrimmed=true \
           -o ./publish
     
+    - name: Copy Bundled Sound Packs
+      run: |
+        mkdir -p publish/BundledSoundPacks
+        cp -r BundledSoundPacks/* publish/BundledSoundPacks/
+    
     - name: Create Archive
       run: |
         cd publish

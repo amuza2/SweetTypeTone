@@ -23,6 +23,72 @@ public class SoundPackService : ISoundPackService
 
         Directory.CreateDirectory(_soundPacksDirectory);
         Directory.CreateDirectory(_customSoundPacksDirectory);
+        
+        // Copy bundled sound packs on first run
+        CopyBundledSoundPacksIfNeeded();
+    }
+    
+    private void CopyBundledSoundPacksIfNeeded()
+    {
+        try
+        {
+            // Check if bundled packs already copied
+            var markerFile = Path.Combine(_soundPacksDirectory, ".bundled_packs_copied");
+            if (File.Exists(markerFile))
+                return;
+            
+            // Find bundled sound packs directory (next to executable)
+            var exeDir = AppContext.BaseDirectory;
+            var bundledPacksDir = Path.Combine(exeDir, "BundledSoundPacks");
+            
+            if (!Directory.Exists(bundledPacksDir))
+            {
+                Console.WriteLine("No bundled sound packs found");
+                return;
+            }
+            
+            Console.WriteLine($"Copying bundled sound packs from: {bundledPacksDir}");
+            
+            // Copy each sound pack
+            foreach (var packDir in Directory.GetDirectories(bundledPacksDir))
+            {
+                var packName = Path.GetFileName(packDir);
+                var destDir = Path.Combine(_soundPacksDirectory, packName);
+                
+                if (!Directory.Exists(destDir))
+                {
+                    CopyDirectory(packDir, destDir);
+                    Console.WriteLine($"  ✓ Copied: {packName}");
+                }
+            }
+            
+            // Create marker file
+            File.WriteAllText(markerFile, DateTime.Now.ToString());
+            Console.WriteLine("Bundled sound packs copied successfully!");
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error copying bundled sound packs: {ex.Message}");
+        }
+    }
+    
+    private void CopyDirectory(string sourceDir, string destDir)
+    {
+        Directory.CreateDirectory(destDir);
+        
+        // Copy files
+        foreach (var file in Directory.GetFiles(sourceDir))
+        {
+            var destFile = Path.Combine(destDir, Path.GetFileName(file));
+            File.Copy(file, destFile, true);
+        }
+        
+        // Copy subdirectories
+        foreach (var subDir in Directory.GetDirectories(sourceDir))
+        {
+            var destSubDir = Path.Combine(destDir, Path.GetFileName(subDir));
+            CopyDirectory(subDir, destSubDir);
+        }
     }
 
     public async Task<List<SoundPack>> GetAllSoundPacksAsync()
