@@ -60,21 +60,23 @@ chmod +x SweetTypeTone-1.0.0-x86_64.AppImage
 ./SweetTypeTone-1.0.0-x86_64.AppImage
 ```
 
-## Permissions Setup
+## Permissions Setup (Automatic!)
 
-Users still need to setup input permissions once:
+The AppImage includes **automatic GUI permission setup**:
 
-```bash
-# Extract setup script from AppImage
-./SweetTypeTone-1.0.0-x86_64.AppImage --appimage-extract
+### First Run Experience:
+1. User double-clicks the AppImage
+2. If permissions not configured, a dialog appears asking to setup
+3. User clicks "Yes" and enters password (via `pkexec` GUI prompt)
+4. Permissions configured automatically
+5. Dialog tells user to log out and log back in
+6. Done!
 
-# Run setup
-sudo squashfs-root/usr/bin/setup-permissions.sh
-
-# Log out and log back in
-```
-
-Or provide the `setup-permissions.sh` script separately.
+### No Terminal Required!
+The entire process is GUI-based and beginner-friendly. Uses:
+- `zenity` for dialogs (available on most Linux distributions)
+- `pkexec` for GUI password prompt (part of PolicyKit)
+- Fallback to terminal if GUI tools not available
 
 ## Testing
 

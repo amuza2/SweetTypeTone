@@ -1,6 +1,7 @@
 using SweetTypeTone.Core.Interfaces;
 using SweetTypeTone.Core.Models;
 using System.Text.Json;
+using System.Text.RegularExpressions;
 
 namespace SweetTypeTone.Core.Services;
 
@@ -17,17 +18,17 @@ public class SoundPackService : ISoundPackService
     {
         var appDataPath = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData);
         var appDirectory = Path.Combine(appDataPath, "SweetTypeTone");
-        
+
         _soundPacksDirectory = Path.Combine(appDirectory, "SoundPacks");
         _customSoundPacksDirectory = customDirectory ?? Path.Combine(appDirectory, "CustomSoundPacks");
 
         Directory.CreateDirectory(_soundPacksDirectory);
         Directory.CreateDirectory(_customSoundPacksDirectory);
-        
+
         // Copy bundled sound packs on first run
         CopyBundledSoundPacksIfNeeded();
     }
-    
+
     private void CopyBundledSoundPacksIfNeeded()
     {
         try
@@ -36,38 +37,38 @@ public class SoundPackService : ISoundPackService
             var markerFile = Path.Combine(_soundPacksDirectory, ".bundled_packs_copied");
             if (File.Exists(markerFile))
                 return;
-            
+
             // Find bundled sound packs directory
             // Try AppImage location first, then executable directory
             var bundledPacksDir = Environment.GetEnvironmentVariable("SWEETTYPETONE_BUNDLED_PACKS");
-            
+
             if (string.IsNullOrEmpty(bundledPacksDir) || !Directory.Exists(bundledPacksDir))
             {
                 var exeDir = AppContext.BaseDirectory;
                 bundledPacksDir = Path.Combine(exeDir, "BundledSoundPacks");
             }
-            
+
             if (!Directory.Exists(bundledPacksDir))
             {
                 Console.WriteLine("No bundled sound packs found");
                 return;
             }
-            
+
             Console.WriteLine($"Copying bundled sound packs from: {bundledPacksDir}");
-            
+
             // Copy each sound pack
             foreach (var packDir in Directory.GetDirectories(bundledPacksDir))
             {
                 var packName = Path.GetFileName(packDir);
                 var destDir = Path.Combine(_soundPacksDirectory, packName);
-                
+
                 if (!Directory.Exists(destDir))
                 {
                     CopyDirectory(packDir, destDir);
                     Console.WriteLine($"  ✓ Copied: {packName}");
                 }
             }
-            
+
             // Create marker file
             File.WriteAllText(markerFile, DateTime.Now.ToString());
             Console.WriteLine("Bundled sound packs copied successfully!");
@@ -77,18 +78,18 @@ public class SoundPackService : ISoundPackService
             Console.WriteLine($"Error copying bundled sound packs: {ex.Message}");
         }
     }
-    
+
     private void CopyDirectory(string sourceDir, string destDir)
     {
         Directory.CreateDirectory(destDir);
-        
+
         // Copy files
         foreach (var file in Directory.GetFiles(sourceDir))
         {
             var destFile = Path.Combine(destDir, Path.GetFileName(file));
             File.Copy(file, destFile, true);
         }
-        
+
         // Copy subdirectories
         foreach (var subDir in Directory.GetDirectories(sourceDir))
         {
@@ -134,7 +135,7 @@ public class SoundPackService : ISoundPackService
         }
 
         var soundPack = await ConvertMechvibesPackAsync(mechvibesConfig, path);
-        
+
         // Copy to custom directory
         var destPath = Path.Combine(_customSoundPacksDirectory, soundPack.Id);
         await CopySoundPackAsync(path, destPath, soundPack);
@@ -173,13 +174,13 @@ public class SoundPackService : ISoundPackService
                 // Skip null values
                 if (kvp.Value == null)
                     continue;
-                    
+
                 if (int.TryParse(kvp.Key, out var keyCode))
                 {
                     var soundPath = kvp.Value.ToString();
                     if (string.IsNullOrEmpty(soundPath))
                         continue;
-                        
+
                     var soundDef = new SoundDefinition
                     {
                         KeyCode = keyCode,
@@ -197,19 +198,66 @@ public class SoundPackService : ISoundPackService
                     }
                 }
             }
+
+            // Parse default sound patterns (e.g., "GENERIC_R{0-4}.mp3")
+            if (!string.IsNullOrEmpty(config.sound))
+            {
+                soundPack.DefaultSoundPaths = ExpandSoundPattern(config.sound, sourcePath);
+                Console.WriteLine($"  Found {soundPack.DefaultSoundPaths.Count} default sounds");
+            }
+            if (!string.IsNullOrEmpty(config.soundup))
+            {
+                soundPack.DefaultUpSoundPaths = ExpandSoundPattern(config.soundup, sourcePath);
+            }
         }
-        
-        // Check if this is an MP3 pack (unsupported)
-        CheckIfMP3Pack(soundPack, sourcePath);
+
+        // MP3 is now supported - no need to mark as unsupported
 
         return soundPack;
     }
-    
+
+    /// <summary>
+    /// Expands sound patterns like "GENERIC_R{0-4}.mp3" into a list of file paths
+    /// </summary>
+    private List<string> ExpandSoundPattern(string pattern, string sourcePath)
+    {
+        var results = new List<string>();
+
+        // Match pattern like {0-4} or {1-5}
+        var match = Regex.Match(pattern, @"\{(\d+)-(\d+)\}");
+        if (match.Success)
+        {
+            int start = int.Parse(match.Groups[1].Value);
+            int end = int.Parse(match.Groups[2].Value);
+
+            for (int i = start; i <= end; i++)
+            {
+                var fileName = pattern.Replace(match.Value, i.ToString());
+                var fullPath = Path.Combine(sourcePath, fileName);
+                if (File.Exists(fullPath))
+                {
+                    results.Add(fileName);
+                }
+            }
+        }
+        else
+        {
+            // No pattern, just a single file
+            var fullPath = Path.Combine(sourcePath, pattern);
+            if (File.Exists(fullPath))
+            {
+                results.Add(pattern);
+            }
+        }
+
+        return results;
+    }
+
     private void CheckIfMP3Pack(SoundPack soundPack, string sourcePath)
     {
         // Check if any sound files are MP3
         bool hasMp3Files = false;
-        
+
         // Check in defines (for multi-file packs)
         foreach (var def in soundPack.KeyDefinitions.Values)
         {
@@ -224,7 +272,7 @@ public class SoundPackService : ISoundPackService
                 break;
             }
         }
-        
+
         // For sprite-based packs, check the main sound file
         if (!hasMp3Files && soundPack.KeyDefinitions.Values.Any(d => d.SpriteStart.HasValue))
         {
@@ -233,7 +281,7 @@ public class SoundPackService : ISoundPackService
                 .Where(d => !string.IsNullOrEmpty(d.DownSoundPath))
                 .Select(d => d.DownSoundPath)
                 .Distinct();
-            
+
             foreach (var file in spriteFiles)
             {
                 if (file != null && file.EndsWith(".mp3", StringComparison.OrdinalIgnoreCase))
@@ -243,11 +291,11 @@ public class SoundPackService : ISoundPackService
                 }
             }
         }
-        
+
         // Only check directory for MP3 files if we haven't found any in definitions
         // and there are no sprite definitions (to avoid false positives)
-        if (!hasMp3Files && 
-            soundPack.KeyDefinitions.Count > 0 && 
+        if (!hasMp3Files &&
+            soundPack.KeyDefinitions.Count > 0 &&
             !soundPack.KeyDefinitions.Values.Any(d => d.SpriteStart.HasValue) &&
             Directory.Exists(sourcePath))
         {
@@ -261,11 +309,11 @@ public class SoundPackService : ISoundPackService
                     .Where(f => !string.IsNullOrEmpty(f))
                     .Select(f => Path.GetFileName(f))
                     .ToHashSet();
-                
+
                 hasMp3Files = mp3Files.Any(mp3 => referencedFiles.Contains(Path.GetFileName(mp3)));
             }
         }
-        
+
         if (hasMp3Files)
         {
             soundPack.IsSupported = false;
@@ -278,7 +326,7 @@ public class SoundPackService : ISoundPackService
         // For now, we'll keep sprite references and handle them in audio service
         // Full extraction would require audio processing libraries
         var soundPath = Path.Combine(sourcePath, config.sound ?? "sound.ogg");
-        
+
         if (config.defines != null)
         {
             foreach (var kvp in config.defines)
@@ -419,12 +467,12 @@ public class SoundPackService : ISoundPackService
             {
                 // First check for our native format
                 var soundpackPath = Path.Combine(packDir, "soundpack.json");
-                
+
                 if (File.Exists(soundpackPath))
                 {
                     var json = await File.ReadAllTextAsync(soundpackPath);
                     var soundPack = JsonSerializer.Deserialize(json, AppJsonContext.Default.SoundPack);
-                    
+
                     if (soundPack != null)
                     {
                         soundPack.IsCustom = isCustom;
@@ -436,13 +484,13 @@ public class SoundPackService : ISoundPackService
                 {
                     // Check for Mechvibes format (config.json)
                     var mechvibesConfigPath = Path.Combine(packDir, "config.json");
-                    
+
                     if (File.Exists(mechvibesConfigPath))
                     {
                         Console.WriteLine($"Found Mechvibes pack: {packDir}");
                         var json = await File.ReadAllTextAsync(mechvibesConfigPath);
                         var mechvibesConfig = JsonSerializer.Deserialize(json, AppJsonContext.Default.MechvibesConfig);
-                        
+
                         if (mechvibesConfig != null)
                         {
                             var soundPack = await ConvertMechvibesPackAsync(mechvibesConfig, packDir);

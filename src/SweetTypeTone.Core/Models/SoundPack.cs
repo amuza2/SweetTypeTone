@@ -16,6 +16,14 @@ public class SoundPack
     public string? UnsupportedReason { get; set; }
     public SoundPackType Type { get; set; } = SoundPackType.Keyboard;
     public Dictionary<int, SoundDefinition> KeyDefinitions { get; set; } = new();
+    /// <summary>
+    /// Default sounds to play when a key doesn't have a specific definition (one is randomly selected)
+    /// </summary>
+    public List<string> DefaultSoundPaths { get; set; } = new();
+    /// <summary>
+    /// Default key-up sounds (one is randomly selected)
+    /// </summary>
+    public List<string> DefaultUpSoundPaths { get; set; } = new();
     public DateTime CreatedAt { get; set; } = DateTime.Now;
     public DateTime ModifiedAt { get; set; } = DateTime.Now;
 }

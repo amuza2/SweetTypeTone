@@ -1,4 +1,5 @@
 using OpenTK.Audio.OpenAL;
+using NLayer;
 using NVorbis;
 using SweetTypeTone.Core.Interfaces;
 using SweetTypeTone.Core.Models;
@@ -26,10 +27,18 @@ public class OpenALAudioService : IAudioService
     private SoundPack? _currentPack;
     private bool _disposed;
     private const int MaxSources = 32; // Maximum simultaneous sounds
-    
+
     // For sprite-based packs
     private AudioBuffer? _spriteBuffer;
     private bool _isSpritePack;
+
+    // For default/fallback sounds
+    private readonly List<AudioBuffer> _defaultSoundBuffers = new();
+    private readonly List<AudioBuffer> _defaultUpSoundBuffers = new();
+    private readonly Random _random = new();
+
+    // Round-robin source selection for better performance
+    private int _sourceIndex = 0;
 
     public async Task InitializeAsync()
     {
@@ -38,7 +47,7 @@ public class OpenALAudioService : IAudioService
             try
             {
                 Console.WriteLine("Initializing OpenAL audio...");
-                
+
                 // Open default audio device
                 _device = ALC.OpenDevice(null);
                 if (_device == ALDevice.Null)
@@ -54,7 +63,7 @@ public class OpenALAudioService : IAudioService
                 }
 
                 ALC.MakeContextCurrent(_context);
-                
+
                 // Create audio sources for simultaneous playback
                 for (int i = 0; i < MaxSources; i++)
                 {
@@ -82,10 +91,10 @@ public class OpenALAudioService : IAudioService
         await Task.Run(() =>
         {
             Console.WriteLine($"Loading: {soundPack.Name}");
-            
+
             // Check if sprite-based
             var hasSpriteDefinitions = soundPack.KeyDefinitions.Values.Any(d => d.SpriteStart.HasValue);
-            
+
             if (hasSpriteDefinitions)
             {
                 LoadSpritePack(soundPack);
@@ -94,7 +103,7 @@ public class OpenALAudioService : IAudioService
             {
                 LoadFilePack(soundPack);
             }
-            
+
             if (_isSpritePack)
             {
                 Console.WriteLine($"  ✓ Ready ({soundPack.KeyDefinitions.Count} keys)");
@@ -111,16 +120,16 @@ public class OpenALAudioService : IAudioService
         // Get the sprite filename from the first key definition
         string? spriteFileName = soundPack.KeyDefinitions.Values
             .FirstOrDefault(d => d.SpriteStart.HasValue)?.DownSoundPath;
-        
+
         if (string.IsNullOrEmpty(spriteFileName))
         {
             Console.WriteLine($"  ✗ No sprite file defined");
             return;
         }
-        
+
         // Build full path to sprite file
         var spritePath = Path.Combine(soundPack.FolderPath, spriteFileName);
-        
+
         if (!File.Exists(spritePath))
         {
             Console.WriteLine($"  ✗ Sprite file not found");
@@ -129,15 +138,15 @@ public class OpenALAudioService : IAudioService
 
         // Load entire sprite file as raw audio data (not as OpenAL buffer yet)
         using var vorbis = new VorbisReader(spritePath);
-        
+
         var sampleRate = vorbis.SampleRate;
         var channels = vorbis.Channels;
-        
+
         // Read all samples (NVorbis TotalSamples can be unreliable, so read in chunks)
         var audioDataList = new List<float>();
         var buffer = new float[sampleRate * channels]; // 1 second buffer
         int samplesRead;
-        
+
         while ((samplesRead = vorbis.ReadSamples(buffer, 0, buffer.Length)) > 0)
         {
             for (int i = 0; i < samplesRead; i++)
@@ -145,11 +154,11 @@ public class OpenALAudioService : IAudioService
                 audioDataList.Add(buffer[i]);
             }
         }
-        
+
         var audioData = audioDataList.ToArray();
         var totalSamples = audioData.Length;
         var durationSeconds = (float)totalSamples / (sampleRate * channels);
-        
+
         // Store the sprite buffer for on-demand playback
         _spriteBuffer = new AudioBuffer
         {
@@ -157,7 +166,7 @@ public class OpenALAudioService : IAudioService
             Channels = channels,
             Data = audioData
         };
-        
+
         _isSpritePack = true;
     }
 
@@ -165,10 +174,10 @@ public class OpenALAudioService : IAudioService
     {
         int successCount = 0;
         int failCount = 0;
-        
+
         // Collect all files to load
         var filesToLoad = new List<(int keyCode, string path, bool isUpSound)>();
-        
+
         foreach (var kvp in soundPack.KeyDefinitions)
         {
             if (!string.IsNullOrEmpty(kvp.Value.DownSoundPath))
@@ -179,7 +188,7 @@ public class OpenALAudioService : IAudioService
                     filesToLoad.Add((kvp.Key, fullPath, false));
                 }
             }
-            
+
             if (!string.IsNullOrEmpty(kvp.Value.UpSoundPath))
             {
                 var fullPath = Path.Combine(soundPack.FolderPath, kvp.Value.UpSoundPath);
@@ -189,10 +198,10 @@ public class OpenALAudioService : IAudioService
                 }
             }
         }
-        
+
         // Load files in parallel for faster loading
         var loadResults = new ConcurrentBag<(int keyCode, AudioBuffer? buffer, bool isUpSound, bool success)>();
-        
+
         Parallel.ForEach(filesToLoad, new ParallelOptions { MaxDegreeOfParallelism = 4 }, fileInfo =>
         {
             try
@@ -205,7 +214,7 @@ public class OpenALAudioService : IAudioService
                 loadResults.Add((fileInfo.keyCode, null, fileInfo.isUpSound, false));
             }
         });
-        
+
         // Store loaded buffers
         foreach (var result in loadResults)
         {
@@ -222,7 +231,47 @@ public class OpenALAudioService : IAudioService
                 failCount++;
             }
         }
-        
+
+        // Load default sounds for fallback (when a key doesn't have a specific mapping)
+        foreach (var defaultPath in soundPack.DefaultSoundPaths)
+        {
+            var fullPath = Path.Combine(soundPack.FolderPath, defaultPath);
+            if (File.Exists(fullPath))
+            {
+                try
+                {
+                    var buffer = LoadAudioFile(fullPath);
+                    if (buffer != null)
+                    {
+                        _defaultSoundBuffers.Add(buffer);
+                        Console.WriteLine($"  ✓ Loaded default sound: {defaultPath}");
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"  ✗ Failed to load default sound {defaultPath}: {ex.Message}");
+                }
+            }
+        }
+
+        // Load default up sounds
+        foreach (var defaultPath in soundPack.DefaultUpSoundPaths)
+        {
+            var fullPath = Path.Combine(soundPack.FolderPath, defaultPath);
+            if (File.Exists(fullPath))
+            {
+                try
+                {
+                    var buffer = LoadAudioFile(fullPath);
+                    if (buffer != null)
+                    {
+                        _defaultUpSoundBuffers.Add(buffer);
+                    }
+                }
+                catch { }
+            }
+        }
+
         if (failCount > 0)
         {
             Console.WriteLine($"  Load summary: {successCount} succeeded, {failCount} failed");
@@ -231,6 +280,11 @@ public class OpenALAudioService : IAudioService
         {
             Console.WriteLine($"  ✓ Loaded {successCount} sounds");
         }
+
+        if (_defaultSoundBuffers.Count > 0)
+        {
+            Console.WriteLine($"  ✓ {_defaultSoundBuffers.Count} default sounds available for fallback");
+        }
     }
 
     private AudioBuffer? LoadAudioFile(string filePath)
@@ -238,7 +292,7 @@ public class OpenALAudioService : IAudioService
         try
         {
             var extension = Path.GetExtension(filePath).ToLowerInvariant();
-            
+
             if (extension == ".ogg")
             {
                 return LoadOggFile(filePath);
@@ -251,7 +305,7 @@ public class OpenALAudioService : IAudioService
             {
                 return LoadMp3File(filePath);
             }
-            
+
             Console.WriteLine($"  ✗ Unsupported audio format: {extension}");
             return null;
         }
@@ -265,28 +319,28 @@ public class OpenALAudioService : IAudioService
     private AudioBuffer LoadOggFile(string filePath)
     {
         using var vorbis = new VorbisReader(filePath);
-        
+
         var sampleRate = vorbis.SampleRate;
         var channels = vorbis.Channels;
         var totalSamples = (int)vorbis.TotalSamples;
-        
+
         var audioData = new float[totalSamples];
         vorbis.ReadSamples(audioData, 0, totalSamples);
-        
+
         // Convert float samples to 16-bit PCM
         var pcmData = new short[totalSamples];
         for (int i = 0; i < totalSamples; i++)
         {
             pcmData[i] = (short)(audioData[i] * short.MaxValue);
         }
-        
+
         // Create OpenAL buffer
         int bufferId = AL.GenBuffer();
         var format = channels == 1 ? ALFormat.Mono16 : ALFormat.Stereo16;
-        
+
         AL.BufferData(bufferId, format, pcmData, sampleRate);
         CheckALError("BufferData");
-        
+
         return new AudioBuffer
         {
             BufferId = bufferId,
@@ -299,31 +353,31 @@ public class OpenALAudioService : IAudioService
     private AudioBuffer LoadWavFile(string filePath)
     {
         using var reader = new BinaryReader(File.OpenRead(filePath));
-        
+
         // Read RIFF header
         var riff = new string(reader.ReadChars(4));
         if (riff != "RIFF")
             throw new Exception($"Invalid WAV file: expected RIFF, got {riff}");
-        
+
         var fileSize = reader.ReadInt32();
         var wave = new string(reader.ReadChars(4));
         if (wave != "WAVE")
             throw new Exception($"Invalid WAV file: expected WAVE, got {wave}");
-        
+
         int channels = 0;
         int sampleRate = 0;
         int bitsPerSample = 0;
         short audioFormat = 0;
-        
+
         // Read chunks until we find fmt and data
         short[]? pcmData = null;
-        
+
         while (reader.BaseStream.Position < reader.BaseStream.Length)
         {
             var chunkId = new string(reader.ReadChars(4));
             var chunkSize = reader.ReadInt32();
             var chunkStart = reader.BaseStream.Position;
-            
+
             if (chunkId == "fmt ")
             {
                 audioFormat = reader.ReadInt16();
@@ -332,11 +386,11 @@ public class OpenALAudioService : IAudioService
                 var byteRate = reader.ReadInt32();
                 var blockAlign = reader.ReadInt16();
                 bitsPerSample = reader.ReadInt16();
-                
+
                 // Only support PCM format (1)
                 if (audioFormat != 1)
                     throw new Exception($"Unsupported WAV format: {audioFormat} (only PCM is supported)");
-                
+
                 // Skip any extra fmt data
                 reader.BaseStream.Position = chunkStart + chunkSize;
             }
@@ -364,7 +418,7 @@ public class OpenALAudioService : IAudioService
                 {
                     throw new Exception($"Unsupported bits per sample: {bitsPerSample}");
                 }
-                
+
                 break; // Found data, we're done
             }
             else
@@ -373,20 +427,20 @@ public class OpenALAudioService : IAudioService
                 reader.BaseStream.Position = chunkStart + chunkSize;
             }
         }
-        
+
         if (pcmData == null)
             throw new Exception("No data chunk found in WAV file");
-        
+
         if (channels == 0 || sampleRate == 0)
             throw new Exception("Invalid WAV file: missing fmt chunk");
-        
+
         // Create OpenAL buffer
         int bufferId = AL.GenBuffer();
         var format = channels == 1 ? ALFormat.Mono16 : ALFormat.Stereo16;
-        
+
         AL.BufferData(bufferId, format, pcmData, sampleRate);
         CheckALError("BufferData");
-        
+
         return new AudioBuffer
         {
             BufferId = bufferId,
@@ -397,54 +451,91 @@ public class OpenALAudioService : IAudioService
 
     private AudioBuffer LoadMp3File(string filePath)
     {
-        // MP3 decoding on Linux requires external tools
-        // For now, skip MP3 files and suggest conversion
-        throw new NotSupportedException(
-            "MP3 files are not supported on Linux. " +
-            "Please convert to OGG or WAV format using: " +
-            $"ffmpeg -i \"{filePath}\" \"{Path.ChangeExtension(filePath, ".ogg")}\"");
+        using var stream = File.OpenRead(filePath);
+        using var reader = new MpegFile(stream);
+
+        var sampleRate = reader.SampleRate;
+        var channels = reader.Channels;
+
+        // Read all samples with optimized buffer (larger buffer = fewer allocations)
+        var samples = new List<float>();
+        var buffer = new float[16384]; // 16KB buffer for fewer read operations
+        int samplesRead;
+
+        while ((samplesRead = reader.ReadSamples(buffer, 0, buffer.Length)) > 0)
+        {
+            // Use AddRange with ArraySegment to avoid individual Add calls
+            if (samplesRead == buffer.Length)
+                samples.AddRange(buffer);
+            else
+                samples.AddRange(new ArraySegment<float>(buffer, 0, samplesRead));
+        }
+
+        var audioData = samples.ToArray();
+
+        // Convert float samples to 16-bit PCM
+        var pcmData = new short[audioData.Length];
+        for (int i = 0; i < audioData.Length; i++)
+        {
+            pcmData[i] = (short)(audioData[i] * short.MaxValue);
+        }
+
+        // Create OpenAL buffer
+        int bufferId = AL.GenBuffer();
+        var format = channels == 1 ? ALFormat.Mono16 : ALFormat.Stereo16;
+
+        AL.BufferData(bufferId, format, pcmData, sampleRate);
+        CheckALError("BufferData");
+
+        return new AudioBuffer
+        {
+            BufferId = bufferId,
+            SampleRate = sampleRate,
+            Channels = channels,
+            Data = audioData
+        };
     }
 
     private AudioBuffer? ExtractAudioSegment(AudioBuffer source, int startSample, int durationSamples)
     {
         if (source.Data == null)
             return null;
-        
+
         // Validate and clamp indices
         if (startSample < 0 || startSample >= source.Data.Length)
         {
             Console.WriteLine($"  ✗ Invalid start sample: {startSample} (max: {source.Data.Length})");
             return null;
         }
-        
+
         // Clamp duration to available data
         if (startSample + durationSamples > source.Data.Length)
         {
             durationSamples = source.Data.Length - startSample;
         }
-        
+
         if (durationSamples <= 0)
         {
             Console.WriteLine($"  ✗ Invalid duration: {durationSamples}");
             return null;
         }
-        
+
         var extractedData = new float[durationSamples];
         Array.Copy(source.Data, startSample, extractedData, 0, durationSamples);
-        
+
         // Convert to PCM
         var pcmData = new short[durationSamples];
         for (int i = 0; i < durationSamples; i++)
         {
             pcmData[i] = (short)(Math.Clamp(extractedData[i], -1f, 1f) * short.MaxValue);
         }
-        
+
         // Create OpenAL buffer
         int bufferId = AL.GenBuffer();
         var format = source.Channels == 1 ? ALFormat.Mono16 : ALFormat.Stereo16;
-        
+
         AL.BufferData(bufferId, format, pcmData, source.SampleRate);
-        
+
         var error = AL.GetError();
         if (error != ALError.NoError)
         {
@@ -452,7 +543,7 @@ public class OpenALAudioService : IAudioService
             AL.DeleteBuffer(bufferId);
             return null;
         }
-        
+
         return new AudioBuffer
         {
             BufferId = bufferId,
@@ -479,10 +570,22 @@ public class OpenALAudioService : IAudioService
             if (action == InputAction.KeyDown || action == InputAction.MouseDown)
             {
                 _soundCache.TryGetValue(keyCode, out buffer);
+
+                // Fall back to random default sound if no specific mapping
+                if (buffer == null && _defaultSoundBuffers.Count > 0)
+                {
+                    buffer = _defaultSoundBuffers[_random.Next(_defaultSoundBuffers.Count)];
+                }
             }
             else if (action == InputAction.KeyUp || action == InputAction.MouseUp)
             {
                 _soundUpCache.TryGetValue(keyCode, out buffer);
+
+                // Fall back to random default up sound if no specific mapping
+                if (buffer == null && _defaultUpSoundBuffers.Count > 0)
+                {
+                    buffer = _defaultUpSoundBuffers[_random.Next(_defaultUpSoundBuffers.Count)];
+                }
             }
 
             if (buffer != null)
@@ -491,100 +594,73 @@ public class OpenALAudioService : IAudioService
             }
         }
     }
-    
+
     private void PlaySpriteSound(int keyCode, InputAction action)
     {
         if (_currentPack == null || _spriteBuffer == null)
-        {
-            Console.WriteLine($"[PlaySprite] No pack or buffer (keyCode={keyCode})");
             return;
-        }
-        
+
         // Get the key definition
         if (!_currentPack.KeyDefinitions.TryGetValue(keyCode, out var def))
-        {
-            Console.WriteLine($"[PlaySprite] Key {keyCode} not found in definitions");
             return;
-        }
-        
+
         // Only play key down sounds for now (key up sounds would need separate definitions)
         if (action != InputAction.KeyDown && action != InputAction.MouseDown)
             return;
-        
+
         if (!def.SpriteStart.HasValue || !def.SpriteDuration.HasValue)
-        {
-            Console.WriteLine($"[PlaySprite] Key {keyCode} missing sprite data");
             return;
-        }
-        
+
         // Extract and play the sprite segment on-demand
         var startMs = def.SpriteStart.Value;
         var durationMs = def.SpriteDuration.Value;
-        
-        Console.WriteLine($"[PlaySprite] Key {keyCode}: start={startMs}ms, duration={durationMs}ms");
-        
+
         // Convert milliseconds to sample index (use long to avoid overflow)
         long startSampleLong = (long)startMs * _spriteBuffer.SampleRate * _spriteBuffer.Channels / 1000;
         long durationSamplesLong = (long)durationMs * _spriteBuffer.SampleRate * _spriteBuffer.Channels / 1000;
-        
+
         int startSample = (int)startSampleLong;
         int durationSamples = (int)durationSamplesLong;
-        
-        Console.WriteLine($"[PlaySprite] Samples: start={startSample}, duration={durationSamples}, max={_spriteBuffer.Data!.Length}");
-        
+
         // Validate bounds
         if (startSample < 0 || startSample >= _spriteBuffer.Data!.Length)
-        {
-            Console.WriteLine($"[PlaySprite] ✗ Start sample out of bounds!");
             return;
-        }
-        
+
         if (startSample + durationSamples > _spriteBuffer.Data.Length)
-        {
             durationSamples = _spriteBuffer.Data.Length - startSample;
-            Console.WriteLine($"[PlaySprite] Clamped duration to {durationSamples}");
-        }
-        
+
         if (durationSamples <= 0)
-        {
-            Console.WriteLine($"[PlaySprite] ✗ Invalid duration!");
             return;
-        }
-        
+
         // For stereo, ensure even number of samples (pairs of L/R)
         if (_spriteBuffer.Channels == 2 && durationSamples % 2 != 0)
-        {
             durationSamples--;
-        }
-        
+
         // Extract segment
         var segment = new float[durationSamples];
         Array.Copy(_spriteBuffer.Data, startSample, segment, 0, durationSamples);
-        
+
         // Convert to PCM
         var pcmData = new short[durationSamples];
         for (int i = 0; i < durationSamples; i++)
         {
             pcmData[i] = (short)(Math.Clamp(segment[i], -1f, 1f) * short.MaxValue);
         }
-        
+
         // Create temporary buffer and play
         int bufferId = AL.GenBuffer();
         var format = _spriteBuffer.Channels == 1 ? ALFormat.Mono16 : ALFormat.Stereo16;
         AL.BufferData(bufferId, format, pcmData, _spriteBuffer.SampleRate);
-        
+
         var error = AL.GetError();
         if (error == ALError.NoError)
         {
-            Console.WriteLine($"[PlaySprite] ✓ Playing key {keyCode}");
             PlayBuffer(bufferId);
-            
             // Schedule buffer deletion after playback (simple approach: delete after 1 second)
             Task.Delay(1000).ContinueWith(_ => AL.DeleteBuffer(bufferId));
         }
         else
         {
-            Console.WriteLine($"[PlaySprite] ✗ OpenAL error: {error}");
             AL.DeleteBuffer(bufferId);
         }
     }
@@ -604,18 +680,23 @@ public class OpenALAudioService : IAudioService
 
     private int GetAvailableSource()
     {
-        // Find a source that's not playing
-        foreach (var source in _availableSources)
+        // Round-robin search starting from last used index
+        // This avoids always checking from the beginning
+        for (int i = 0; i < MaxSources; i++)
         {
-            AL.GetSource(source, ALGetSourcei.SourceState, out int state);
+            int idx = (_sourceIndex + i) % MaxSources;
+            AL.GetSource(_availableSources[idx], ALGetSourcei.SourceState, out int state);
             if (state != (int)ALSourceState.Playing)
             {
-                return source;
+                _sourceIndex = (idx + 1) % MaxSources;
+                return _availableSources[idx];
             }
         }
-        
-        // If all sources are busy, reuse the first one
-        return _availableSources.FirstOrDefault();
+
+        // All sources are busy - reuse oldest one
+        int fallbackIdx = _sourceIndex;
+        _sourceIndex = (_sourceIndex + 1) % MaxSources;
+        return _availableSources[fallbackIdx];
     }
 
     public void SetVolume(float volume)
@@ -630,7 +711,15 @@ public class OpenALAudioService : IAudioService
 
     public void UnloadSoundPack()
     {
-        // Delete all buffers
+        // Stop all sources and detach buffers BEFORE deleting them
+        // This prevents OpenAL IllegalCommand errors
+        foreach (var source in _availableSources)
+        {
+            AL.SourceStop(source);
+            AL.Source(source, ALSourcei.Buffer, 0); // Detach buffer from source
+        }
+
+        // Now safe to delete all buffers
         foreach (var buffer in _soundCache.Values)
         {
             if (buffer.BufferId > 0)
@@ -641,13 +730,27 @@ public class OpenALAudioService : IAudioService
             if (buffer.BufferId > 0)
                 AL.DeleteBuffer(buffer.BufferId);
         }
-        
+
+        // Delete default sound buffers
+        foreach (var buffer in _defaultSoundBuffers)
+        {
+            if (buffer.BufferId > 0)
+                AL.DeleteBuffer(buffer.BufferId);
+        }
+        foreach (var buffer in _defaultUpSoundBuffers)
+        {
+            if (buffer.BufferId > 0)
+                AL.DeleteBuffer(buffer.BufferId);
+        }
+
         _soundCache.Clear();
         _soundUpCache.Clear();
+        _defaultSoundBuffers.Clear();
+        _defaultUpSoundBuffers.Clear();
         _spriteBuffer = null;
         _isSpritePack = false;
         _currentPack = null;
-        
+
         CheckALError("UnloadSoundPack");
     }
 

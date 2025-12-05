@@ -38,37 +38,18 @@ A modern Linux application that brings mechanical keyboard sounds to your typing
 
   
 
-### Download Release (Recommended)
+### Download AppImage (Recommended)
 
-  
+Download the latest AppImage from [Releases](https://github.com/amuza2/SweetTypeTone/releases):
 
-Download the latest release from [Releases](https://github.com/amuza2/SweetTypeTone/releases):
+1. **Download** `SweetTypeTone-1.0.0-x86_64.AppImage`
+2. **Make it executable** (right-click → Properties → Permissions → "Allow executing as program")
+3. **Double-click to run**
+4. **First run**: A dialog will ask to configure permissions - click "Yes" and enter your password
+5. **Log out and log back in**
+6. **Run again** - Enjoy!
 
-  
-
-```bash
-
-# Download and extract
-
-wget  https://github.com/amuza2/SweetTypeTone/releases/latest/download/SweetTypeTone-Linux-x64.tar.gz
-
-tar  -xzf  SweetTypeTone-Linux-x64.tar.gz
-
-cd  SweetTypeTone
-
-  
-
-# Setup permissions (one-time)
-
-./setup-permissions.sh
-
-  
-
-# Log out and log back in, then run
-
-./SweetTypeTone
-
-```
+**No installation needed!** Works on Ubuntu, Fedora, Arch, and all major Linux distributions.
 
   
 

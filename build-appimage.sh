@@ -94,10 +94,71 @@ Type=Application
 Categories=Audio;Utility;
 Terminal=false
 StartupWMClass=SweetTypeTone
+X-AppImage-Version=1.0.0
+Comment[en]=Mechanical keyboard sound effects - requires input group membership
 EOF
 
 # Copy desktop file to applications
 cp ${APPDIR}/sweettypetone.desktop ${APPDIR}/usr/share/applications/
+
+# Create permission setup helper script
+echo "🔧 Creating permission setup helper..."
+cat > ${APPDIR}/usr/bin/setup-permissions-gui.sh << 'EOF'
+#!/bin/bash
+
+# GUI-friendly permission setup for SweetTypeTone
+
+# Check if already in input group
+if groups | grep -q '\binput\b'; then
+    if command -v zenity &> /dev/null; then
+        zenity --info --title="SweetTypeTone" \
+               --text="✅ Permissions already configured!\n\nYou're all set. Enjoy SweetTypeTone!" \
+               --width=350
+    fi
+    exit 0
+fi
+
+# Ask user if they want to setup permissions
+if command -v zenity &> /dev/null; then
+    if zenity --question --title="SweetTypeTone - First Run Setup" \
+              --text="SweetTypeTone needs permission to monitor keyboard input.\n\nWould you like to configure permissions now?\n\n(You'll be asked for your password)" \
+              --width=400; then
+        
+        # Run the permission setup with pkexec (GUI password prompt)
+        if command -v pkexec &> /dev/null; then
+            if pkexec usermod -aG input "$USER"; then
+                zenity --info --title="SweetTypeTone - Setup Complete" \
+                       --text="✅ Permissions configured successfully!\n\n⚠️ IMPORTANT: You must log out and log back in for changes to take effect.\n\nAfter logging back in, double-click the AppImage again." \
+                       --width=450
+                exit 0
+            else
+                zenity --error --title="SweetTypeTone - Setup Failed" \
+                       --text="❌ Failed to configure permissions.\n\nPlease run manually:\nsudo usermod -aG input $USER\n\nThen log out and log back in." \
+                       --width=400
+                exit 1
+            fi
+        else
+            # Fallback: try with sudo in terminal
+            if command -v x-terminal-emulator &> /dev/null; then
+                x-terminal-emulator -e "sudo usermod -aG input $USER && echo 'Done! Please log out and log back in.' && read -p 'Press Enter to close...'"
+            elif command -v gnome-terminal &> /dev/null; then
+                gnome-terminal -- bash -c "sudo usermod -aG input $USER && echo 'Done! Please log out and log back in.' && read -p 'Press Enter to close...'"
+            else
+                zenity --error --title="SweetTypeTone" \
+                       --text="Please run in terminal:\nsudo usermod -aG input $USER\n\nThen log out and log back in." \
+                       --width=400
+            fi
+        fi
+    fi
+else
+    # No GUI available, print to console
+    echo "SweetTypeTone requires input group membership."
+    echo "Run: sudo usermod -aG input $USER"
+    echo "Then log out and log back in."
+fi
+EOF
+
+chmod +x ${APPDIR}/usr/bin/setup-permissions-gui.sh
 
 # Create AppRun script
 echo "🔧 Creating AppRun script..."

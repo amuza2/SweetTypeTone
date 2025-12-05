@@ -43,6 +43,22 @@ public partial class App : Application
             // More info: https://docs.avaloniaui.net/docs/guides/development-guides/data-validation#manage-validationplugins
             DisableAvaloniaDataAnnotationValidation();
 
+            // Check permissions first
+            if (!PermissionChecker.HasInputPermissions())
+            {
+                var permissionWindow = new PermissionSetupWindow();
+                permissionWindow.Show();
+                
+                // Wait for window to close
+                permissionWindow.Closed += (s, e) =>
+                {
+                    if (!permissionWindow.SetupCompleted)
+                    {
+                        Console.WriteLine("User skipped permission setup");
+                    }
+                };
+            }
+
             // Initialize services
             // Using OpenAL (stable, proven to work)
             _audioService = new OpenALAudioService();
