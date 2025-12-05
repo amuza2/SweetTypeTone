@@ -42,14 +42,27 @@ A modern Linux application that brings mechanical keyboard sounds to your typing
 
 Download the latest AppImage from [Releases](https://github.com/amuza2/SweetTypeTone/releases):
 
-1. **Download** `SweetTypeTone-1.0.0-x86_64.AppImage`
-2. **Make it executable** (right-click → Properties → Permissions → "Allow executing as program")
+1. **Download** `SweetTypeTone-x.x.x-x86_64.AppImage`
+2. **Make it executable**: `chmod +x SweetTypeTone-*.AppImage`
 3. **Double-click to run**
 4. **First run**: A dialog will ask to configure permissions - click "Yes" and enter your password
 5. **Log out and log back in**
 6. **Run again** - Enjoy!
 
-**No installation needed!** Works on Ubuntu, Fedora, Arch, and all major Linux distributions.
+**✨ Includes 20+ pre-installed sound packs!** No installation needed. Works on Ubuntu, Fedora, Arch, and all major Linux distributions.
+
+  
+
+### Download Binary Archive
+
+Alternative installation method:
+
+1. **Download** `SweetTypeTone-x.x.x-linux-x64.tar.gz`
+2. **Extract**: `tar -xzf SweetTypeTone-*.tar.gz`
+3. **Run installer**: `./install.sh` (optional, installs to ~/.local/bin)
+4. **Or run directly**: `./SweetTypeTone`
+
+**✨ Includes 20+ pre-installed sound packs!**
 
   
 
@@ -63,8 +76,14 @@ git  clone  https://github.com/amuza2/SweetTypeTone.git
 
 cd  SweetTypeTone
 
-dotnet  build  -c  Release
+# Build AppImage with bundled sound packs
+./scripts/build-appimage.sh
 
+# Or build binary archive
+./scripts/build-binary.sh
+
+# Or just build for development
+dotnet  build  -c  Release
 dotnet  run  --project  src/SweetTypeTone/SweetTypeTone.csproj
 
 ```
@@ -74,9 +93,11 @@ dotnet  run  --project  src/SweetTypeTone/SweetTypeTone.csproj
 **Requirements:** .NET 10 SDK, Linux with evdev support
   
 
-### Sound Packs
+### 🎹 Bundled Sound Packs
 
-Copy sound packs (OGG/WAV) to `~/.config/SweetTypeTone/CustomSoundPacks/` and click refresh.
+Both AppImage and binary releases include **20+ pre-installed sound packs**:
+
+**Add custom packs**: Copy sound packs (OGG/WAV) to `~/.config/SweetTypeTone/CustomSoundPacks/` and click refresh.
   
 
 ## 🛠️ Tech Stack

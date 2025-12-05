@@ -131,6 +131,21 @@ GITHUB_SETUP_COMPLETE.md
 
 # AppImage build artifacts
 *.AppImage
-*.AppDir/
+SweetTypeTone.AppDir/
 appimagetool
+appimagetool-*.AppImage
 publish/
+squashfs-root/
+
+# Binary build artifacts
+*.tar.gz
+build/
+
+# Test and debug scripts
+test-appimage.sh
+debug-soundpacks.sh
+appimage-test.log
+*.log
+
+# Extracted AppImage for testing
+squashfs-root/

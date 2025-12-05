@@ -115,6 +115,9 @@ public class OpenALAudioService : IAudioService
         });
     }
 
+    // Cache for pre-extracted sprite segment buffers (keyCode -> bufferId)
+    private readonly ConcurrentDictionary<int, int> _spriteSoundCache = new();
+
     private void LoadSpritePack(SoundPack soundPack)
     {
         // Get the sprite filename from the first key definition
@@ -136,38 +139,99 @@ public class OpenALAudioService : IAudioService
             return;
         }
 
-        // Load entire sprite file as raw audio data (not as OpenAL buffer yet)
+        // Load entire sprite file as raw audio data temporarily
         using var vorbis = new VorbisReader(spritePath);
 
         var sampleRate = vorbis.SampleRate;
         var channels = vorbis.Channels;
 
-        // Read all samples (NVorbis TotalSamples can be unreliable, so read in chunks)
-        var audioDataList = new List<float>();
+        // Pre-allocate list with estimated capacity for better performance
+        var estimatedSamples = (int)(vorbis.TotalSamples * channels);
+        var audioDataList = estimatedSamples > 0
+            ? new List<float>(estimatedSamples)
+            : new List<float>();
+
         var buffer = new float[sampleRate * channels]; // 1 second buffer
         int samplesRead;
 
         while ((samplesRead = vorbis.ReadSamples(buffer, 0, buffer.Length)) > 0)
         {
-            for (int i = 0; i < samplesRead; i++)
-            {
-                audioDataList.Add(buffer[i]);
-            }
+            // Use AddRange for better performance
+            if (samplesRead == buffer.Length)
+                audioDataList.AddRange(buffer);
+            else
+                audioDataList.AddRange(new ArraySegment<float>(buffer, 0, samplesRead));
         }
 
         var audioData = audioDataList.ToArray();
-        var totalSamples = audioData.Length;
-        var durationSeconds = (float)totalSamples / (sampleRate * channels);
+        var format = channels == 1 ? ALFormat.Mono16 : ALFormat.Stereo16;
 
-        // Store the sprite buffer for on-demand playback
+        // Pre-extract ALL sprite segments as OpenAL buffers immediately
+        // This uses GPU/OpenAL memory instead of keeping raw audio data in RAM
+        int extractedCount = 0;
+        foreach (var kvp in soundPack.KeyDefinitions)
+        {
+            var def = kvp.Value;
+            if (!def.SpriteStart.HasValue || !def.SpriteDuration.HasValue)
+                continue;
+
+            var startMs = def.SpriteStart.Value;
+            var durationMs = def.SpriteDuration.Value;
+
+            // Convert milliseconds to sample index
+            long startSampleLong = (long)startMs * sampleRate * channels / 1000;
+            long durationSamplesLong = (long)durationMs * sampleRate * channels / 1000;
+
+            int startSample = (int)startSampleLong;
+            int durationSamples = (int)durationSamplesLong;
+
+            // Validate bounds
+            if (startSample < 0 || startSample >= audioData.Length)
+                continue;
+
+            if (startSample + durationSamples > audioData.Length)
+                durationSamples = audioData.Length - startSample;
+
+            if (durationSamples <= 0)
+                continue;
+
+            // For stereo, ensure even number of samples
+            if (channels == 2 && durationSamples % 2 != 0)
+                durationSamples--;
+
+            // Convert float segment to 16-bit PCM
+            var pcmData = new short[durationSamples];
+            for (int i = 0; i < durationSamples; i++)
+            {
+                pcmData[i] = (short)(Math.Clamp(audioData[startSample + i], -1f, 1f) * short.MaxValue);
+            }
+
+            // Create permanent OpenAL buffer for this key
+            int bufferId = AL.GenBuffer();
+            AL.BufferData(bufferId, format, pcmData, sampleRate);
+
+            var error = AL.GetError();
+            if (error == ALError.NoError)
+            {
+                _spriteSoundCache[kvp.Key] = bufferId;
+                extractedCount++;
+            }
+            else
+            {
+                AL.DeleteBuffer(bufferId);
+            }
+        }
+
+        // Store minimal metadata only (no raw audio data!)
         _spriteBuffer = new AudioBuffer
         {
             SampleRate = sampleRate,
             Channels = channels,
-            Data = audioData
+            Data = null // Don't keep raw audio data - saves ~50-100MB!
         };
 
         _isSpritePack = true;
+        Console.WriteLine($"  ✓ Pre-extracted {extractedCount} sprite segments to OpenAL buffers");
     }
 
     private void LoadFilePack(SoundPack soundPack)
@@ -346,7 +410,7 @@ public class OpenALAudioService : IAudioService
             BufferId = bufferId,
             SampleRate = sampleRate,
             Channels = channels,
-            Data = audioData
+            Data = null // Free memory - we only need the OpenAL buffer
         };
     }
 
@@ -451,14 +515,19 @@ public class OpenALAudioService : IAudioService
 
     private AudioBuffer LoadMp3File(string filePath)
     {
-        using var stream = File.OpenRead(filePath);
+        using var stream = new FileStream(filePath, FileMode.Open, FileAccess.Read, FileShare.Read, bufferSize: 65536, useAsync: false);
         using var reader = new MpegFile(stream);
 
         var sampleRate = reader.SampleRate;
         var channels = reader.Channels;
 
         // Read all samples with optimized buffer (larger buffer = fewer allocations)
-        var samples = new List<float>();
+        // Pre-allocate list capacity to avoid resizing
+        // MP3 compression ratio is typically 10:1, so decoded size ≈ fileSize * 10
+        // But we store as float (4 bytes), so: fileSize * 10 / 4 = fileSize * 2.5
+        var fileSize = new FileInfo(filePath).Length;
+        var estimatedSamples = (int)(fileSize * 2.5);
+        var samples = new List<float>(estimatedSamples);
         var buffer = new float[16384]; // 16KB buffer for fewer read operations
         int samplesRead;
 
@@ -492,63 +561,7 @@ public class OpenALAudioService : IAudioService
             BufferId = bufferId,
             SampleRate = sampleRate,
             Channels = channels,
-            Data = audioData
-        };
-    }
-
-    private AudioBuffer? ExtractAudioSegment(AudioBuffer source, int startSample, int durationSamples)
-    {
-        if (source.Data == null)
-            return null;
-
-        // Validate and clamp indices
-        if (startSample < 0 || startSample >= source.Data.Length)
-        {
-            Console.WriteLine($"  ✗ Invalid start sample: {startSample} (max: {source.Data.Length})");
-            return null;
-        }
-
-        // Clamp duration to available data
-        if (startSample + durationSamples > source.Data.Length)
-        {
-            durationSamples = source.Data.Length - startSample;
-        }
-
-        if (durationSamples <= 0)
-        {
-            Console.WriteLine($"  ✗ Invalid duration: {durationSamples}");
-            return null;
-        }
-
-        var extractedData = new float[durationSamples];
-        Array.Copy(source.Data, startSample, extractedData, 0, durationSamples);
-
-        // Convert to PCM
-        var pcmData = new short[durationSamples];
-        for (int i = 0; i < durationSamples; i++)
-        {
-            pcmData[i] = (short)(Math.Clamp(extractedData[i], -1f, 1f) * short.MaxValue);
-        }
-
-        // Create OpenAL buffer
-        int bufferId = AL.GenBuffer();
-        var format = source.Channels == 1 ? ALFormat.Mono16 : ALFormat.Stereo16;
-
-        AL.BufferData(bufferId, format, pcmData, source.SampleRate);
-
-        var error = AL.GetError();
-        if (error != ALError.NoError)
-        {
-            Console.WriteLine($"  ✗ OpenAL BufferData error: {error}");
-            AL.DeleteBuffer(bufferId);
-            return null;
-        }
-
-        return new AudioBuffer
-        {
-            BufferId = bufferId,
-            SampleRate = source.SampleRate,
-            Channels = source.Channels
+            Data = null // Free memory - we only need the OpenAL buffer
         };
     }
 
@@ -597,73 +610,20 @@ public class OpenALAudioService : IAudioService
 
     private void PlaySpriteSound(int keyCode, InputAction action)
     {
-        if (_currentPack == null || _spriteBuffer == null)
-            return;
-
-        // Get the key definition
-        if (!_currentPack.KeyDefinitions.TryGetValue(keyCode, out var def))
+        if (_currentPack == null || !_isSpritePack)
             return;
 
         // Only play key down sounds for now (key up sounds would need separate definitions)
         if (action != InputAction.KeyDown && action != InputAction.MouseDown)
             return;
 
-        if (!def.SpriteStart.HasValue || !def.SpriteDuration.HasValue)
-            return;
-
-        // Extract and play the sprite segment on-demand
-        var startMs = def.SpriteStart.Value;
-        var durationMs = def.SpriteDuration.Value;
-
-        // Convert milliseconds to sample index (use long to avoid overflow)
-        long startSampleLong = (long)startMs * _spriteBuffer.SampleRate * _spriteBuffer.Channels / 1000;
-        long durationSamplesLong = (long)durationMs * _spriteBuffer.SampleRate * _spriteBuffer.Channels / 1000;
-
-        int startSample = (int)startSampleLong;
-        int durationSamples = (int)durationSamplesLong;
-
-        // Validate bounds
-        if (startSample < 0 || startSample >= _spriteBuffer.Data!.Length)
-            return;
-
-        if (startSample + durationSamples > _spriteBuffer.Data.Length)
-            durationSamples = _spriteBuffer.Data.Length - startSample;
-
-        if (durationSamples <= 0)
-            return;
-
-        // For stereo, ensure even number of samples (pairs of L/R)
-        if (_spriteBuffer.Channels == 2 && durationSamples % 2 != 0)
-            durationSamples--;
-
-        // Extract segment
-        var segment = new float[durationSamples];
-        Array.Copy(_spriteBuffer.Data, startSample, segment, 0, durationSamples);
-
-        // Convert to PCM
-        var pcmData = new short[durationSamples];
-        for (int i = 0; i < durationSamples; i++)
-        {
-            pcmData[i] = (short)(Math.Clamp(segment[i], -1f, 1f) * short.MaxValue);
-        }
-
-        // Create temporary buffer and play
-        int bufferId = AL.GenBuffer();
-        var format = _spriteBuffer.Channels == 1 ? ALFormat.Mono16 : ALFormat.Stereo16;
-        AL.BufferData(bufferId, format, pcmData, _spriteBuffer.SampleRate);
-
-        var error = AL.GetError();
-        if (error == ALError.NoError)
+        // Look up pre-cached buffer for this key
+        if (_spriteSoundCache.TryGetValue(keyCode, out int bufferId))
         {
             PlayBuffer(bufferId);
-            // Schedule buffer deletion after playback (simple approach: delete after 1 second)
-            Task.Delay(1000).ContinueWith(_ => AL.DeleteBuffer(bufferId));
-        }
-        else
-        {
-            AL.DeleteBuffer(bufferId);
         }
     }
+
 
     private void PlayBuffer(int bufferId)
     {
@@ -743,10 +703,18 @@ public class OpenALAudioService : IAudioService
                 AL.DeleteBuffer(buffer.BufferId);
         }
 
+        // Delete pre-cached sprite sound buffers
+        foreach (var bufferId in _spriteSoundCache.Values)
+        {
+            if (bufferId > 0)
+                AL.DeleteBuffer(bufferId);
+        }
+
         _soundCache.Clear();
         _soundUpCache.Clear();
         _defaultSoundBuffers.Clear();
         _defaultUpSoundBuffers.Clear();
+        _spriteSoundCache.Clear();
         _spriteBuffer = null;
         _isSpritePack = false;
         _currentPack = null;

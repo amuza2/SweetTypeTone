@@ -5,7 +5,7 @@
 
 set -e  # Exit on error
 
-VERSION="1.0.0"
+VERSION="1.1.0"
 ARCH="x86_64"
 APP_NAME="SweetTypeTone"
 APPDIR="${APP_NAME}.AppDir"
@@ -86,16 +86,18 @@ fi
 echo "📝 Creating desktop file..."
 cat > ${APPDIR}/sweettypetone.desktop << 'EOF'
 [Desktop Entry]
+Version=1.1
+Type=Application
 Name=SweetTypeTone
-Comment=Mechanical keyboard sound effects for Linux
+Comment=Play keyboard sounds as you type
 Exec=sweettypetone
 Icon=sweettypetone
-Type=Application
-Categories=Audio;Utility;
 Terminal=false
+Keywords=keyboard;sound;typing;mechanical;
+Categories=AudioVideo;Audio;
 StartupWMClass=SweetTypeTone
-X-AppImage-Version=1.0.0
-Comment[en]=Mechanical keyboard sound effects - requires input group membership
+StartupNotify=false
+X-AppImage-Version=1.1.0
 EOF
 
 # Copy desktop file to applications

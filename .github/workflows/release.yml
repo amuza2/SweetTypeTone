@@ -20,7 +20,11 @@ jobs:
       with:
         dotnet-version: '10.0.x'
     
-    - name: Publish
+    - name: Extract version from tag
+      id: get_version
+      run: echo "VERSION=${GITHUB_REF#refs/tags/v}" >> $GITHUB_OUTPUT
+    
+    - name: Publish Binary
       run: |
         dotnet publish src/SweetTypeTone/SweetTypeTone.csproj \
           -c Release \
@@ -28,22 +32,81 @@ jobs:
           --self-contained true \
           -p:PublishSingleFile=true \
           -p:PublishTrimmed=true \
-          -o ./publish
+          -o ./publish/linux-x64
     
-    - name: Copy Bundled Sound Packs
+    - name: Copy Bundled Sound Packs to Binary
       run: |
-        mkdir -p publish/BundledSoundPacks
-        cp -r BundledSoundPacks/* publish/BundledSoundPacks/
+        mkdir -p publish/linux-x64/BundledSoundPacks
+        cp -r BundledSoundPacks/* publish/linux-x64/BundledSoundPacks/
+        echo "✅ Copied $(ls -1 BundledSoundPacks | wc -l) sound packs to binary"
     
-    - name: Create Archive
+    - name: Create Binary Archive
       run: |
-        cd publish
-        tar -czf ../SweetTypeTone-Linux-x64.tar.gz *
+        cd publish/linux-x64
+        tar -czf ../../SweetTypeTone-${{ steps.get_version.outputs.VERSION }}-linux-x64.tar.gz *
+        cd ../..
+        echo "📦 Binary archive created"
+    
+    - name: Download appimagetool
+      run: |
+        wget -q https://github.com/AppImage/AppImageKit/releases/download/continuous/appimagetool-x86_64.AppImage -O appimagetool
+        chmod +x appimagetool
+    
+    - name: Build AppImage
+      run: |
+        chmod +x scripts/build-appimage.sh
+        ./scripts/build-appimage.sh
+        echo "✅ AppImage built successfully"
+    
+    - name: Rename AppImage with version
+      run: |
+        mv SweetTypeTone-1.0.0-x86_64.AppImage SweetTypeTone-${{ steps.get_version.outputs.VERSION }}-x86_64.AppImage
     
     - name: Create Release
       uses: softprops/action-gh-release@v1
       with:
-        files: SweetTypeTone-Linux-x64.tar.gz
+        files: |
+          SweetTypeTone-${{ steps.get_version.outputs.VERSION }}-linux-x64.tar.gz
+          SweetTypeTone-${{ steps.get_version.outputs.VERSION }}-x86_64.AppImage
         generate_release_notes: true
         draft: false
         prerelease: false
+        body: |
+          ## 🎵 SweetTypeTone Release ${{ steps.get_version.outputs.VERSION }}
+          
+          ### 📦 Downloads
+          
+          **AppImage (Recommended)** - Universal Linux package with bundled sound packs
+          - Download `SweetTypeTone-${{ steps.get_version.outputs.VERSION }}-x86_64.AppImage`
+          - Make executable: `chmod +x SweetTypeTone-*.AppImage`
+          - Double-click to run
+          - Works on Ubuntu, Fedora, Arch, and all major distributions
+          
+          **Binary Archive** - Standalone binary with bundled sound packs
+          - Download `SweetTypeTone-${{ steps.get_version.outputs.VERSION }}-linux-x64.tar.gz`
+          - Extract: `tar -xzf SweetTypeTone-*.tar.gz`
+          - Run: `./SweetTypeTone`
+          
+          ### 🎹 Bundled Sound Packs
+          
+          This release includes **20+ pre-installed sound packs**:
+          - Cherry MX switches (Black, Blue, Brown, Red) with ABS/PBT keycaps
+          - NovelKeys Cream
+          - Holy Pandas
+          - Topre Purple Hybrid
+          - Everglide Crystal Purple & Oreo
+          - Fallout Terminal theme
+          - And more!
+          
+          ### ⚠️ First Run Setup
+          
+          SweetTypeTone needs permission to monitor keyboard input:
+          1. Run the application
+          2. Click "Yes" when prompted to configure permissions
+          3. Enter your password
+          4. Log out and log back in
+          5. Run again - enjoy!
+          
+          Or manually: `sudo usermod -aG input $USER` then log out/in.
+          
+          ### 📝 What's Changed

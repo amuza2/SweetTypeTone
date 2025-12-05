@@ -203,7 +203,9 @@ public class LinuxInputMonitorService : IInputMonitorService
     {
         try
         {
-            using var stream = new FileStream(devicePath, FileMode.Open, FileAccess.Read, FileShare.ReadWrite);
+            using var stream = new FileStream(devicePath, FileMode.Open, FileAccess.Read, FileShare.ReadWrite, 
+                bufferSize: 4096, // Larger buffer for better performance
+                useAsync: true);
             var buffer = new byte[24]; // Size of input_event struct on 64-bit Linux
 
             while (!cancellationToken.IsCancellationRequested)
@@ -213,6 +215,11 @@ public class LinuxInputMonitorService : IInputMonitorService
                 if (bytesRead == 24)
                 {
                     ParseInputEvent(buffer);
+                }
+                else if (bytesRead == 0)
+                {
+                    // Device disconnected or end of stream
+                    break;
                 }
             }
         }

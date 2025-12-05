@@ -438,16 +438,17 @@ public class SoundPackService : ISoundPackService
             File.Copy(file, destFile, true);
         }
     }
-
     public async Task ScanForSoundPacksAsync()
     {
         _soundPacks.Clear();
 
-        // Scan custom directory
-        await ScanDirectoryAsync(_customSoundPacksDirectory, true);
+        // Scan directories in parallel for faster startup
+        await Task.WhenAll(
+            ScanDirectoryAsync(_soundPacksDirectory, false),
+            ScanDirectoryAsync(_customSoundPacksDirectory, true)
+        );
 
-        // Scan default directory
-        await ScanDirectoryAsync(_soundPacksDirectory, false);
+        Console.WriteLine($"Found {_soundPacks.Count} sound packs");
     }
 
     public async Task RefreshSoundPacksAsync()
