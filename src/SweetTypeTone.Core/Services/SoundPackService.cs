@@ -374,8 +374,7 @@ public class SoundPackService : ISoundPackService
 
         // Save converted config
         var configPath = Path.Combine(destPath, "soundpack.json");
-        var options = new JsonSerializerOptions(AppJsonContext.Default.Options) { WriteIndented = true };
-        var json = JsonSerializer.Serialize(soundPack, options);
+        var json = JsonSerializer.Serialize(soundPack, AppJsonContext.Default.SoundPack);
         await File.WriteAllTextAsync(configPath, json);
     }
 
@@ -512,8 +511,7 @@ public class SoundPackService : ISoundPackService
     private async Task SaveSoundPackAsync(SoundPack soundPack)
     {
         var configPath = Path.Combine(soundPack.FolderPath, "soundpack.json");
-        var options = new JsonSerializerOptions(AppJsonContext.Default.Options) { WriteIndented = true };
-        var json = JsonSerializer.Serialize(soundPack, options);
+        var json = JsonSerializer.Serialize(soundPack, AppJsonContext.Default.SoundPack);
         await File.WriteAllTextAsync(configPath, json);
     }
 }

@@ -30,7 +30,7 @@ public class SettingsService : ISettingsService
             {
                 var json = await File.ReadAllTextAsync(_settingsPath);
                 var settings = JsonSerializer.Deserialize(json, AppJsonContext.Default.AppSettings);
-                
+
                 if (settings != null)
                 {
                     _currentSettings = settings;
@@ -53,11 +53,7 @@ public class SettingsService : ISettingsService
     {
         try
         {
-            var options = new JsonSerializerOptions(AppJsonContext.Default.Options) 
-            { 
-                WriteIndented = true 
-            };
-            var json = JsonSerializer.Serialize(settings, options);
+            var json = JsonSerializer.Serialize(settings, AppJsonContext.Default.AppSettings);
             await File.WriteAllTextAsync(_settingsPath, json);
             _currentSettings = settings;
         }

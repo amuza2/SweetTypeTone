@@ -48,7 +48,7 @@ public partial class App : Application
             {
                 var permissionWindow = new PermissionSetupWindow();
                 permissionWindow.Show();
-                
+
                 // Wait for window to close
                 permissionWindow.Closed += (s, e) =>
                 {
@@ -94,7 +94,7 @@ public partial class App : Application
 
             // Handle shutdown
             desktop.ShutdownRequested += OnShutdownRequested;
-            
+
             // Update toggle menu text
             if (_toggleMenuItem != null)
                 _toggleMenuItem.Header = "Hide";
@@ -108,6 +108,11 @@ public partial class App : Application
         _mainViewModel?.Cleanup();
     }
 
+
+    [System.Diagnostics.CodeAnalysis.UnconditionalSuppressMessage(
+        "Trimming",
+        "IL2026:Members annotated with 'RequiresUnreferencedCodeAttribute' require dynamic access otherwise can break functionality when trimming application code",
+        Justification = "Avalonia's DataValidators is accessed at startup only and the types are preserved")]
     private void DisableAvaloniaDataAnnotationValidation()
     {
         // Get an array of plugins to remove
@@ -236,7 +241,7 @@ public partial class App : Application
                 Icon = LoadBitmap($"/Assets/{SoundIconPath}")
             };
             muteMenuItem.Click += OnMuteClicked;
-            
+
             // Bind initial mute state
             if (_mainViewModel != null)
             {
