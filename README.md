@@ -111,6 +111,8 @@ Both AppImage and binary releases include **20+ pre-installed sound packs**:
 
 -  **[NVorbis](https://github.com/NVorbis/NVorbis)** - OGG Vorbis decoder
 
+-  **[NLayer](https://github.com/naudio/NLayer)** - MP3 decoder
+
 -  **Linux evdev** - Native input monitoring
 
 -  **.NET 10** - Modern runtime with trimming support
