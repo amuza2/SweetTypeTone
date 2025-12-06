@@ -12,7 +12,8 @@
 A modern Linux application that brings mechanical keyboard sounds to your typing experience. Built with Avalonia UI and .NET 10.
  
 
-<img width="30%" height="40%" alt="image" src="https://github.com/user-attachments/assets/32973777-874b-4965-9c25-ca6ba77f86f6" />
+<img width="30%" height="40%" alt="image" src="https://github.com/user-attachments/assets/e9524f5e-9b6f-4851-9e6a-bc0ee80ca1b6" />
+
 </div> 
   
 
