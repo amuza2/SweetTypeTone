@@ -49,8 +49,6 @@ public class OpenALAudioService : IAudioService
         {
             try
             {
-                Console.WriteLine("Initializing OpenAL audio...");
-
                 // Open default audio device
                 _device = ALC.OpenDevice(null);
                 if (_device == ALDevice.Null)
@@ -74,12 +72,10 @@ public class OpenALAudioService : IAudioService
                     _availableSources.Add(source);
                 }
 
-                Console.WriteLine($"✓ OpenAL initialized with {MaxSources} audio sources");
                 CheckALError("Initialize");
             }
-            catch (Exception ex)
+            catch
             {
-                Console.WriteLine($"✗ OpenAL initialization failed: {ex.Message}");
                 throw;
             }
         });
@@ -93,8 +89,6 @@ public class OpenALAudioService : IAudioService
 
         await Task.Run(() =>
         {
-            Console.WriteLine($"Loading: {soundPack.Name}");
-
             // Check if sprite-based
             var hasSpriteDefinitions = soundPack.KeyDefinitions.Values.Any(d => d.SpriteStart.HasValue);
 
@@ -107,14 +101,6 @@ public class OpenALAudioService : IAudioService
                 LoadFilePack(soundPack);
             }
 
-            if (_isSpritePack)
-            {
-                Console.WriteLine($"  ✓ Ready ({soundPack.KeyDefinitions.Count} keys)");
-            }
-            else
-            {
-                Console.WriteLine($"  ✓ Ready ({_soundCache.Count} sounds loaded)");
-            }
         });
     }
 
@@ -125,19 +111,13 @@ public class OpenALAudioService : IAudioService
             .FirstOrDefault(d => d.SpriteStart.HasValue)?.DownSoundPath;
 
         if (string.IsNullOrEmpty(spriteFileName))
-        {
-            Console.WriteLine($"  ✗ No sprite file defined");
             return;
-        }
 
         // Build full path to sprite file
         var spritePath = Path.Combine(soundPack.FolderPath, spriteFileName);
 
         if (!File.Exists(spritePath))
-        {
-            Console.WriteLine($"  ✗ Sprite file not found");
             return;
-        }
 
         // Load entire sprite file as raw audio data temporarily
         using var vorbis = new VorbisReader(spritePath);
@@ -231,7 +211,6 @@ public class OpenALAudioService : IAudioService
         };
 
         _isSpritePack = true;
-        Console.WriteLine($"  ✓ Pre-extracted {extractedCount} sprite segments to OpenAL buffers");
     }
 
     private void LoadFilePack(SoundPack soundPack)
@@ -308,12 +287,11 @@ public class OpenALAudioService : IAudioService
                     if (buffer != null)
                     {
                         _defaultSoundBuffers.Add(buffer);
-                        Console.WriteLine($"  ✓ Loaded default sound: {defaultPath}");
                     }
                 }
-                catch (Exception ex)
+                catch
                 {
-                    Console.WriteLine($"  ✗ Failed to load default sound {defaultPath}: {ex.Message}");
+                    // Skip failed sounds
                 }
             }
         }
@@ -336,19 +314,6 @@ public class OpenALAudioService : IAudioService
             }
         }
 
-        if (failCount > 0)
-        {
-            Console.WriteLine($"  Load summary: {successCount} succeeded, {failCount} failed");
-        }
-        else
-        {
-            Console.WriteLine($"  ✓ Loaded {successCount} sounds");
-        }
-
-        if (_defaultSoundBuffers.Count > 0)
-        {
-            Console.WriteLine($"  ✓ {_defaultSoundBuffers.Count} default sounds available for fallback");
-        }
     }
 
     private AudioBuffer? LoadAudioFile(string filePath)

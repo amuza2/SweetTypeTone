@@ -67,17 +67,12 @@ public class LinuxInputMonitorService : IInputMonitorService
             
             var inputDir = "/dev/input";
             if (!Directory.Exists(inputDir))
-            {
-                Console.WriteLine($"Input directory {inputDir} does not exist");
                 return;
-            }
 
             // Look for event devices
             var eventDevices = Directory.GetFiles(inputDir, "event*")
                 .Where(path => File.Exists(path))
                 .ToList();
-
-            Console.WriteLine($"Found {eventDevices.Count} input devices");
 
             foreach (var device in eventDevices)
             {
@@ -86,15 +81,12 @@ public class LinuxInputMonitorService : IInputMonitorService
                     // Try to open the device to check if we have permission
                     using var fs = File.OpenRead(device);
                     _devicePaths.Add(device);
-                    Console.WriteLine($"✓ Added device: {device}");
                 }
-                catch (Exception ex)
+                catch
                 {
-                    Console.WriteLine($"✗ Cannot access {device}: {ex.Message}");
+                    // Skip inaccessible devices
                 }
             }
-            
-            Console.WriteLine($"Total accessible devices: {_devicePaths.Count}");
             
             // If no devices are accessible, try to setup permissions
             if (_devicePaths.Count == 0 && eventDevices.Count > 0)
@@ -190,8 +182,14 @@ public class LinuxInputMonitorService : IInputMonitorService
 
     private async Task MonitorInputAsync(CancellationToken cancellationToken)
     {
+        // Start all device monitors in parallel using synchronous blocking reads
+        // (faster than async for device files)
         var tasks = _devicePaths.Select(devicePath => 
-            Task.Run(() => MonitorDeviceAsync(devicePath, cancellationToken), cancellationToken)
+            Task.Factory.StartNew(
+                () => MonitorDeviceSync(devicePath, cancellationToken),
+                cancellationToken,
+                TaskCreationOptions.LongRunning,
+                TaskScheduler.Default)
         ).ToList();
 
         try
@@ -204,18 +202,19 @@ public class LinuxInputMonitorService : IInputMonitorService
         }
     }
 
-    private async Task MonitorDeviceAsync(string devicePath, CancellationToken cancellationToken)
+    private void MonitorDeviceSync(string devicePath, CancellationToken cancellationToken)
     {
         try
         {
+            // Use synchronous reads with no buffering - much faster for device files
             using var stream = new FileStream(devicePath, FileMode.Open, FileAccess.Read, FileShare.ReadWrite, 
-                bufferSize: 4096, // Larger buffer for better performance
-                useAsync: true);
+                bufferSize: 24, // Exact size of input_event struct
+                useAsync: false);
             var buffer = new byte[24]; // Size of input_event struct on 64-bit Linux
 
             while (!cancellationToken.IsCancellationRequested)
             {
-                var bytesRead = await stream.ReadAsync(buffer, cancellationToken);
+                var bytesRead = stream.Read(buffer, 0, 24);
                 
                 if (bytesRead == 24)
                 {
@@ -234,7 +233,11 @@ public class LinuxInputMonitorService : IInputMonitorService
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"Error monitoring device {devicePath}: {ex.Message}");
+            // Silently ignore device errors (device may have been disconnected)
+            if (!cancellationToken.IsCancellationRequested)
+            {
+                Console.WriteLine($"Error monitoring device {devicePath}: {ex.Message}");
+            }
         }
     }
 

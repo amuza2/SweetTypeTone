@@ -208,7 +208,6 @@ public class SoundPackService : ISoundPackService
             if (!string.IsNullOrEmpty(config.sound))
             {
                 soundPack.DefaultSoundPaths = ExpandSoundPattern(config.sound, sourcePath);
-                Console.WriteLine($"  Found {soundPack.DefaultSoundPaths.Count} default sounds");
             }
             if (!string.IsNullOrEmpty(config.soundup))
             {
@@ -446,13 +445,31 @@ public class SoundPackService : ISoundPackService
     {
         _soundPacks.Clear();
 
-        // Scan directories in parallel for faster startup
-        await Task.WhenAll(
-            ScanDirectoryAsync(_soundPacksDirectory, false),
-            ScanDirectoryAsync(_customSoundPacksDirectory, true)
-        );
+        // Get all pack directories from both locations
+        var packDirs = new List<(string path, bool isCustom)>();
+        
+        if (Directory.Exists(_soundPacksDirectory))
+        {
+            foreach (var dir in Directory.GetDirectories(_soundPacksDirectory))
+                packDirs.Add((dir, false));
+        }
+        
+        if (Directory.Exists(_customSoundPacksDirectory))
+        {
+            foreach (var dir in Directory.GetDirectories(_customSoundPacksDirectory))
+                packDirs.Add((dir, true));
+        }
 
-        Console.WriteLine($"Found {_soundPacks.Count} sound packs");
+        // Scan all packs in parallel for maximum speed
+        var tasks = packDirs.Select(p => ScanSinglePackAsync(p.path, p.isCustom)).ToList();
+        var results = await Task.WhenAll(tasks);
+        
+        // Add non-null results
+        foreach (var pack in results.Where(p => p != null))
+        {
+            _soundPacks.Add(pack!);
+        }
+
     }
 
     public async Task RefreshSoundPacksAsync()
@@ -461,56 +478,50 @@ public class SoundPackService : ISoundPackService
         await ScanForSoundPacksAsync();
     }
 
-    private async Task ScanDirectoryAsync(string directory, bool isCustom)
+    private async Task<SoundPack?> ScanSinglePackAsync(string packDir, bool isCustom)
     {
-        if (!Directory.Exists(directory))
-            return;
-
-        foreach (var packDir in Directory.GetDirectories(directory))
+        try
         {
-            try
+            // First check for our native format
+            var soundpackPath = Path.Combine(packDir, "soundpack.json");
+
+            if (File.Exists(soundpackPath))
             {
-                // First check for our native format
-                var soundpackPath = Path.Combine(packDir, "soundpack.json");
+                var json = await File.ReadAllTextAsync(soundpackPath);
+                var soundPack = JsonSerializer.Deserialize(json, AppJsonContext.Default.SoundPack);
 
-                if (File.Exists(soundpackPath))
+                if (soundPack != null)
                 {
-                    var json = await File.ReadAllTextAsync(soundpackPath);
-                    var soundPack = JsonSerializer.Deserialize(json, AppJsonContext.Default.SoundPack);
-
-                    if (soundPack != null)
-                    {
-                        soundPack.IsCustom = isCustom;
-                        soundPack.FolderPath = packDir;
-                        _soundPacks.Add(soundPack);
-                    }
-                }
-                else
-                {
-                    // Check for Mechvibes format (config.json)
-                    var mechvibesConfigPath = Path.Combine(packDir, "config.json");
-
-                    if (File.Exists(mechvibesConfigPath))
-                    {
-                        Console.WriteLine($"Found Mechvibes pack: {packDir}");
-                        var json = await File.ReadAllTextAsync(mechvibesConfigPath);
-                        var mechvibesConfig = JsonSerializer.Deserialize(json, AppJsonContext.Default.MechvibesConfig);
-
-                        if (mechvibesConfig != null)
-                        {
-                            var soundPack = await ConvertMechvibesPackAsync(mechvibesConfig, packDir);
-                            soundPack.IsCustom = isCustom;
-                            _soundPacks.Add(soundPack);
-                            Console.WriteLine($"Loaded pack: {soundPack.Name}");
-                        }
-                    }
+                    soundPack.IsCustom = isCustom;
+                    soundPack.FolderPath = packDir;
+                    return soundPack;
                 }
             }
-            catch (Exception ex)
+            else
             {
-                Console.WriteLine($"Error loading sound pack from {packDir}: {ex.Message}");
+                // Check for Mechvibes format (config.json)
+                var mechvibesConfigPath = Path.Combine(packDir, "config.json");
+
+                if (File.Exists(mechvibesConfigPath))
+                {
+                    var json = await File.ReadAllTextAsync(mechvibesConfigPath);
+                    var mechvibesConfig = JsonSerializer.Deserialize(json, AppJsonContext.Default.MechvibesConfig);
+
+                    if (mechvibesConfig != null)
+                    {
+                        var soundPack = await ConvertMechvibesPackAsync(mechvibesConfig, packDir);
+                        soundPack.IsCustom = isCustom;
+                        return soundPack;
+                    }
+                }
             }
         }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error loading sound pack from {packDir}: {ex.Message}");
+        }
+        
+        return null;
     }
 
     private async Task SaveSoundPackAsync(SoundPack soundPack)

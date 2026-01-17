@@ -54,29 +54,28 @@ public partial class MainWindowViewModel : ViewModelBase
         _inputMonitorService.InputDetected += OnInputDetected;
     }
 
+    private bool _isInitializing;
+    
     public async Task InitializeAsync()
     {
+        _isInitializing = true;
         IsLoading = true;
         StatusMessage = "Initializing...";
 
         try
         {
-            Console.WriteLine("=== SweetTypeTone Initialization ===");
-            
-            // Initialize audio service
-            Console.WriteLine("Initializing audio service...");
-            await _audioService.InitializeAsync();
-
-            // Load settings
-            Console.WriteLine("Loading settings...");
+            // Load settings first (fast)
             var settings = await _settingsService.LoadSettingsAsync();
             Volume = settings.MasterVolume;
             IsMuted = settings.IsMuted;
 
-            // Load sound packs
-            Console.WriteLine("Scanning for sound packs...");
-            var packs = await _soundPackService.GetAllSoundPacksAsync();
-            Console.WriteLine($"Found {packs.Count} sound packs");
+            // Initialize audio and scan sound packs in parallel
+            var audioTask = _audioService.InitializeAsync();
+            var scanTask = _soundPackService.GetAllSoundPacksAsync();
+            
+            await Task.WhenAll(audioTask, scanTask);
+            
+            var packs = await scanTask;
             
             // Sort by supported status first, then alphabetically
             var sortedPacks = packs
@@ -87,52 +86,44 @@ public partial class MainWindowViewModel : ViewModelBase
             SoundPacks.Clear();
             foreach (var pack in sortedPacks)
             {
-                var supportedText = pack.IsSupported ? "" : $" [{pack.UnsupportedReason}]";
-                Console.WriteLine($"  - {pack.Name}{supportedText} (ID: {pack.Id})");
                 SoundPacks.Add(pack);
             }
 
             // Select saved sound pack or first available (supported only)
+            SoundPack? packToLoad = null;
             if (!string.IsNullOrEmpty(settings.CurrentSoundPackId))
             {
-                var savedPack = SoundPacks.FirstOrDefault(p => p.Id == settings.CurrentSoundPackId);
-                if (savedPack?.IsSupported == true)
-                {
-                    SelectedSoundPack = savedPack;
-                }
+                packToLoad = SoundPacks.FirstOrDefault(p => p.Id == settings.CurrentSoundPackId && p.IsSupported);
             }
-            
-            // If no valid selection, pick first supported pack
-            SelectedSoundPack ??= SoundPacks.FirstOrDefault(p => p.IsSupported);
+            packToLoad ??= SoundPacks.FirstOrDefault(p => p.IsSupported);
 
-            if (SelectedSoundPack != null)
-            {
-                Console.WriteLine($"Loading sound pack: {SelectedSoundPack.Name}");
-                await LoadSoundPackAsync(SelectedSoundPack);
-            }
-            else
-            {
-                Console.WriteLine("No sound packs available!");
-            }
-
-            // Start monitoring if enabled
+            // Start monitoring BEFORE loading sound pack for faster perceived startup
             if (settings.EnableKeyboardSounds || settings.EnableMouseSounds)
             {
-                Console.WriteLine("Auto-starting monitoring...");
                 await StartMonitoringAsync();
             }
 
+            // Now load the sound pack
+            if (packToLoad != null)
+            {
+                await LoadSoundPackAsync(packToLoad);
+                _selectedSoundPack = packToLoad; // Set backing field directly to avoid triggering OnSelectedSoundPackChanged
+                OnPropertyChanged(nameof(SelectedSoundPack));
+            }
+            else
+            {
+                StatusMessage = "No sound packs available";
+            }
+
             StatusMessage = "Ready";
-            Console.WriteLine("=== Initialization Complete ===");
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"ERROR during initialization: {ex.Message}");
-            Console.WriteLine($"Stack trace: {ex.StackTrace}");
             StatusMessage = $"Error: {ex.Message}";
         }
         finally
         {
+            _isInitializing = false;
             IsLoading = false;
         }
     }
@@ -188,6 +179,10 @@ public partial class MainWindowViewModel : ViewModelBase
 
     partial void OnSelectedSoundPackChanged(SoundPack? oldValue, SoundPack? newValue)
     {
+        // Skip during initialization - we load the pack explicitly
+        if (_isInitializing)
+            return;
+            
         if (newValue != null)
         {
             // Prevent selecting unsupported packs
