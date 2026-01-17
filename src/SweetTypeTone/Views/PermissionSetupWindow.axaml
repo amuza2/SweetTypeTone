@@ -1,113 +1,146 @@
-<Window xmlns="https://github.com/avaloniaui"
-        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        x:Class="SweetTypeTone.Views.PermissionSetupWindow"
-        Title="SweetTypeTone - Permission Setup Required"
-        Width="500"
-        Height="350"
-        CanResize="False"
-        WindowStartupLocation="CenterScreen"
-        Icon="/Assets/icons8-key-press-96.png">
-    
+<Window
+    CanResize="False"
+    Height="420"
+    Icon="/Assets/icons8-key-press-96.png"
+    Title="SweetTypeTone - Permission Setup Required"
+    Width="500"
+    WindowStartupLocation="CenterScreen"
+    x:Class="SweetTypeTone.Views.PermissionSetupWindow"
+    xmlns="https://github.com/avaloniaui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
     <Window.Styles>
         <Style Selector="Window">
-            <Setter Property="Background" Value="#1a1a1a"/>
+            <Setter Property="Background" Value="#1a1a1a" />
+        </Style>
+
+        <!--  Primary Button Style (Green)  -->
+        <Style Selector="Button.primary">
+            <Setter Property="Background" Value="#4CAF50" />
+            <Setter Property="Foreground" Value="White" />
+            <Setter Property="CornerRadius" Value="8" />
+            <Setter Property="FontWeight" Value="SemiBold" />
+        </Style>
+        <Style Selector="Button.primary /template/ ContentPresenter#PART_ContentPresenter">
+            <Setter Property="Background" Value="#4CAF50" />
+        </Style>
+        <Style Selector="Button.primary:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+            <Setter Property="Background" Value="#45a049" />
+        </Style>
+        <Style Selector="Button.primary:pressed /template/ ContentPresenter#PART_ContentPresenter">
+            <Setter Property="Background" Value="#3d8b40" />
+        </Style>
+
+        <!--  Secondary Button Style (Gray)  -->
+        <Style Selector="Button.secondary">
+            <Setter Property="Background" Value="#555555" />
+            <Setter Property="Foreground" Value="White" />
+            <Setter Property="CornerRadius" Value="8" />
+        </Style>
+        <Style Selector="Button.secondary /template/ ContentPresenter#PART_ContentPresenter">
+            <Setter Property="Background" Value="#555555" />
+        </Style>
+        <Style Selector="Button.secondary:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+            <Setter Property="Background" Value="#666666" />
+        </Style>
+        <Style Selector="Button.secondary:pressed /template/ ContentPresenter#PART_ContentPresenter">
+            <Setter Property="Background" Value="#777777" />
         </Style>
     </Window.Styles>
-    
+
     <Grid Margin="30">
         <Grid.RowDefinitions>
-            <RowDefinition Height="Auto"/>
-            <RowDefinition Height="*"/>
-            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+            <RowDefinition Height="Auto" />
         </Grid.RowDefinitions>
-        
-        <!-- Header -->
-        <StackPanel Grid.Row="0" Spacing="10">
-            <TextBlock Text="⚠️ Permission Required"
-                      FontSize="24"
-                      FontWeight="Bold"
-                      Foreground="#FF6B6B"
-                      HorizontalAlignment="Center"/>
-            
-            <TextBlock Text="SweetTypeTone needs permission to monitor keyboard input"
-                      FontSize="14"
-                      Foreground="#CCCCCC"
-                      HorizontalAlignment="Center"
-                      TextWrapping="Wrap"/>
+
+        <!--  Header  -->
+        <StackPanel
+            Grid.Row="0"
+            Margin="0,0,0,20"
+            Spacing="10">
+            <TextBlock
+                FontSize="24"
+                FontWeight="Bold"
+                Foreground="#FF6B6B"
+                HorizontalAlignment="Center"
+                Text="⚠️ Permission Required" />
+
+            <TextBlock
+                FontSize="14"
+                Foreground="#CCCCCC"
+                HorizontalAlignment="Center"
+                Text="SweetTypeTone needs permission to monitor keyboard input"
+                TextWrapping="Wrap" />
         </StackPanel>
-        
-        <!-- Content -->
-        <StackPanel Grid.Row="1" Spacing="15" VerticalAlignment="Center">
-            <TextBlock TextWrapping="Wrap"
-                      Foreground="#EEEEEE"
-                      FontSize="13"
-                      LineHeight="22">
-                <Run Text="To play sounds when you type, SweetTypeTone needs access to keyboard input devices."/>
-                <LineBreak/>
-                <LineBreak/>
-                <Run Text="This requires adding your user to the 'input' group."/>
-                <LineBreak/>
-                <LineBreak/>
-                <Run Text="Click 'Setup Permissions' below and enter your password when prompted."/>
+
+        <!--  Content  -->
+        <StackPanel
+            Grid.Row="1"
+            Spacing="15"
+            VerticalAlignment="Top">
+            <TextBlock
+                FontSize="13"
+                Foreground="#EEEEEE"
+                LineHeight="22"
+                TextWrapping="Wrap">
+                <Run Text="To play sounds when you type, SweetTypeTone needs access to keyboard input devices." />
+                <LineBreak />
+                <LineBreak />
+                <Run Text="This requires adding your user to the 'input' group." />
+                <LineBreak />
+                <LineBreak />
+                <Run Text="Click 'Setup Permissions' below and enter your password when prompted." />
             </TextBlock>
-            
-            <Border Background="#2a2a2a"
-                   CornerRadius="8"
-                   Padding="15"
-                   BorderBrush="#3a3a3a"
-                   BorderThickness="1">
+
+            <Border
+                Background="#2a2a2a"
+                BorderBrush="#3a3a3a"
+                BorderThickness="1"
+                CornerRadius="8"
+                Padding="15">
                 <StackPanel Spacing="8">
-                    <TextBlock Text="⚠️ Important:" 
-                              FontWeight="Bold"
-                              Foreground="#FFA500"
-                              FontSize="12"/>
-                    <TextBlock Text="After setup, you must log out and log back in for changes to take effect."
-                              TextWrapping="Wrap"
-                              Foreground="#CCCCCC"
-                              FontSize="12"/>
+                    <TextBlock
+                        FontSize="12"
+                        FontWeight="Bold"
+                        Foreground="#FFA500"
+                        Text="⚠️ Important:" />
+                    <TextBlock
+                        FontSize="12"
+                        Foreground="#CCCCCC"
+                        Text="After setup, you must log out and log back in for changes to take effect."
+                        TextWrapping="Wrap" />
                 </StackPanel>
             </Border>
         </StackPanel>
-        
-        <!-- Buttons -->
-        <StackPanel Grid.Row="2" 
-                   Orientation="Horizontal" 
-                   HorizontalAlignment="Center"
-                   Spacing="15">
-            <Button Content="Setup Permissions"
-                   Click="SetupButton_Click"
-                   Width="150"
-                   Height="40"
-                   FontSize="14"
-                   FontWeight="SemiBold">
-                <Button.Styles>
-                    <Style Selector="Button">
-                        <Setter Property="Background" Value="#4CAF50"/>
-                        <Setter Property="Foreground" Value="White"/>
-                        <Setter Property="CornerRadius" Value="8"/>
-                    </Style>
-                    <Style Selector="Button:pointerover">
-                        <Setter Property="Background" Value="#45a049"/>
-                    </Style>
-                </Button.Styles>
-            </Button>
-            
-            <Button Content="Cancel"
-                   Click="CancelButton_Click"
-                   Width="100"
-                   Height="40"
-                   FontSize="14">
-                <Button.Styles>
-                    <Style Selector="Button">
-                        <Setter Property="Background" Value="#555555"/>
-                        <Setter Property="Foreground" Value="White"/>
-                        <Setter Property="CornerRadius" Value="8"/>
-                    </Style>
-                    <Style Selector="Button:pointerover">
-                        <Setter Property="Background" Value="#666666"/>
-                    </Style>
-                </Button.Styles>
-            </Button>
+
+        <!--  Buttons  -->
+        <StackPanel
+            Grid.Row="2"
+            HorizontalAlignment="Center"
+            Margin="0,-5"
+            Orientation="Horizontal"
+            Spacing="15">
+            <Button
+                Classes="primary"
+                Click="SetupButton_Click"
+                Content="Setup Permissions"
+                FontSize="14"
+                Height="42"
+                HorizontalContentAlignment="Center"
+                VerticalContentAlignment="Center"
+                Width="160" />
+
+            <Button
+                Classes="secondary"
+                Click="CancelButton_Click"
+                Content="Cancel"
+                FontSize="14"
+                Height="42"
+                HorizontalContentAlignment="Center"
+                VerticalContentAlignment="Center"
+                Width="100" />
         </StackPanel>
     </Grid>
 </Window>
