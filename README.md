@@ -19,11 +19,7 @@ A modern Linux application that brings mechanical keyboard sounds to your typing
 
 ## ✨ Features
 
-  
-
 - 🎹 **Real-time Sound Playback** - Keyboard sounds as you type
-
-- 🎨 **Modern UI** - Beautiful gradient interface with system tray support
 
 - 📦 **Mechvibes Compatible** - Import existing sound packs (OGG/WAV)
 
@@ -31,41 +27,14 @@ A modern Linux application that brings mechanical keyboard sounds to your typing
 
 - ⚡ **High Performance** - Parallel loading, OpenAL audio engine
 
-- 🐧 **Linux Native** - Built for Linux with evdev input monitoring
-
   
 
 ## 📥 Installation
 
-  
+### Download
 
-### Download AppImage (Recommended)
+Check [Releases](https://github.com/amuza2/SweetTypeTone/releases):
 
-Download the latest AppImage from [Releases](https://github.com/amuza2/SweetTypeTone/releases):
-
-1. **Download** `SweetTypeTone-x.x.x-x86_64.AppImage`
-2. **Make it executable**: `chmod +x SweetTypeTone-*.AppImage`
-3. **Double-click to run**
-4. **First run**: A dialog will ask to configure permissions - click "Yes" and enter your password
-5. **Log out and log back in**
-6. **Run again** - Enjoy!
-
-**✨ Includes 20+ pre-installed sound packs!** No installation needed. Works on Ubuntu, Fedora, Arch, and all major Linux distributions.
-
-  
-
-### Download Binary Archive
-
-Alternative installation method:
-
-1. **Download** `SweetTypeTone-x.x.x-linux-x64.tar.gz`
-2. **Extract**: `tar -xzf SweetTypeTone-*.tar.gz`
-3. **Run installer**: `./install.sh` (optional, installs to ~/.local/bin)
-4. **Or run directly**: `./SweetTypeTone`
-
-**✨ Includes 20+ pre-installed sound packs!**
-
-  
 
 ### Build from Source
 
@@ -94,17 +63,9 @@ dotnet  run  --project  src/SweetTypeTone.csproj
 **Requirements:** .NET 10 SDK, Linux with evdev support
   
 
-### 🎹 Bundled Sound Packs
-
-Both AppImage and binary releases include **20+ pre-installed sound packs**:
-
-**Add custom packs**: Copy sound packs (OGG/WAV) to `~/.config/SweetTypeTone/CustomSoundPacks/` and click refresh.
-  
-
 ## 🛠️ Tech Stack
 
   
-
 -  **[Avalonia UI](https://avaloniaui.net/)** - Cross-platform UI framework
 
 -  **[OpenAL](https://www.openal.org/)** - High-performance audio engine
@@ -118,14 +79,10 @@ Both AppImage and binary releases include **20+ pre-installed sound packs**:
 -  **.NET 10** - Modern runtime with trimming support
 
   
-
 ## 🤝 Contributing
-
-  
 
 Contributions welcome! See [CONTRIBUTING.md](.github/CONTRIBUTING.md) for guidelines.
 
-  
 
 1. Fork the repository
 
@@ -141,36 +98,9 @@ Contributions welcome! See [CONTRIBUTING.md](.github/CONTRIBUTING.md) for guidel
 
 ## 📝 License
 
-  
-
-MIT License - see [LICENSE](LICENSE) for details.
-
-  
-
-## 🙏 Acknowledgments
-
-  
-
-- Inspired by [Mechvibes](https://github.com/hainguyents13/mechvibes)
-
-- Sound packs from the mechanical keyboard community
-
-  
-
-## 💬 Support
-
-  
-
-- 🐛 [Report a Bug](https://github.com/amuza2/SweetTypeTone/issues/new?template=bug_report.yml)
-
-- 💡 [Request a Feature](https://github.com/amuza2/SweetTypeTone/issues/new?template=feature_request.yml)
-
-- ☕ [Support on Ko-fi](https://ko-fi.com/codingisamazing)
-
-  
+MIT — Inspired by [Mechvibes](https://github.com/hainguyents13/mechvibes)
 
 ---
-
   
 <div align="center">
 Made with ❤️ for the Linux community
