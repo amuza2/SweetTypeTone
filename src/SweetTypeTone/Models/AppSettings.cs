@@ -1,4 +1,6 @@
-namespace SweetTypeTone.Core.Models;
+using System.Collections.Generic;
+
+namespace SweetTypeTone.Models;
 
 /// <summary>
 /// Application settings

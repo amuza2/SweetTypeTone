@@ -1,6 +1,8 @@
-using SweetTypeTone.Core.Models;
+using System;
+using System.Threading.Tasks;
+using SweetTypeTone.Models;
 
-namespace SweetTypeTone.Core.Interfaces;
+namespace SweetTypeTone.Interfaces;
 
 /// <summary>
 /// Service for monitoring keyboard and mouse input

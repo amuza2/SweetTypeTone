@@ -1,6 +1,7 @@
+using System;
 using System.Diagnostics;
 
-namespace SweetTypeTone.Core.Services;
+namespace SweetTypeTone.Services;
 
 /// <summary>
 /// Checks and helps setup Linux input permissions

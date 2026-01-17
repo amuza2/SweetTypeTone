@@ -1,7 +1,7 @@
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
-using SweetTypeTone.Core.Interfaces;
-using SweetTypeTone.Core.Models;
+using SweetTypeTone.Interfaces;
+using SweetTypeTone.Models;
 using System;
 using System.Collections.ObjectModel;
 using System.IO;

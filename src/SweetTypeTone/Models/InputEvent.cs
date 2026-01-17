@@ -1,4 +1,6 @@
-namespace SweetTypeTone.Core.Models;
+using System;
+
+namespace SweetTypeTone.Models;
 
 /// <summary>
 /// Represents an input event (keyboard or mouse)

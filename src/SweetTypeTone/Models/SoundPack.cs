@@ -1,4 +1,7 @@
-namespace SweetTypeTone.Core.Models;
+using System;
+using System.Collections.Generic;
+
+namespace SweetTypeTone.Models;
 
 /// <summary>
 /// Represents a sound pack configuration

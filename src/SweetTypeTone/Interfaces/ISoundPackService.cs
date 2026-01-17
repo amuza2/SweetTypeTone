@@ -1,6 +1,8 @@
-using SweetTypeTone.Core.Models;
+using System.Collections.Generic;
+using System.Threading.Tasks;
+using SweetTypeTone.Models;
 
-namespace SweetTypeTone.Core.Interfaces;
+namespace SweetTypeTone.Interfaces;
 
 /// <summary>
 /// Service for managing sound packs

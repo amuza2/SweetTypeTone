@@ -1,7 +1,8 @@
+using System.Collections.Generic;
 using System.Text.Json.Serialization;
-using SweetTypeTone.Core.Models;
+using SweetTypeTone.Models;
 
-namespace SweetTypeTone.Core;
+namespace SweetTypeTone;
 
 [JsonSerializable(typeof(SoundPack))]
 [JsonSerializable(typeof(MechvibesConfig))]

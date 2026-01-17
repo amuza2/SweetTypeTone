@@ -2,7 +2,7 @@ using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Interactivity;
 using Avalonia.Media;
-using SweetTypeTone.Core.Services;
+using SweetTypeTone.Services;
 using System.Threading.Tasks;
 
 namespace SweetTypeTone.Views;

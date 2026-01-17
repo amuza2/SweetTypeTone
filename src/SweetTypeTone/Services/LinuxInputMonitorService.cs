@@ -1,8 +1,13 @@
-using SweetTypeTone.Core.Interfaces;
-using SweetTypeTone.Core.Models;
-using System.Runtime.InteropServices;
+using System;
+using System.Collections.Generic;
+using System.IO;
+using System.Linq;
+using System.Threading;
+using System.Threading.Tasks;
+using SweetTypeTone.Interfaces;
+using SweetTypeTone.Models;
 
-namespace SweetTypeTone.Core.Services;
+namespace SweetTypeTone.Services;
 
 /// <summary>
 /// Linux input monitor using evdev

@@ -1,8 +1,8 @@
 using OpenTK.Audio.OpenAL;
 using NLayer;
 using NVorbis;
-using SweetTypeTone.Core.Interfaces;
-using SweetTypeTone.Core.Models;
+using SweetTypeTone.Interfaces;
+using SweetTypeTone.Models;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
@@ -10,7 +10,7 @@ using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
 
-namespace SweetTypeTone.Core.Services;
+namespace SweetTypeTone.Services;
 
 /// <summary>
 /// OpenAL-based audio service for cross-platform audio playback
@@ -39,6 +39,9 @@ public class OpenALAudioService : IAudioService
 
     // Round-robin source selection for better performance
     private int _sourceIndex = 0;
+
+    // Cache for pre-extracted sprite segment buffers (keyCode -> bufferId)
+    private readonly ConcurrentDictionary<int, int> _spriteSoundCache = new();
 
     public async Task InitializeAsync()
     {
@@ -114,9 +117,6 @@ public class OpenALAudioService : IAudioService
             }
         });
     }
-
-    // Cache for pre-extracted sprite segment buffers (keyCode -> bufferId)
-    private readonly ConcurrentDictionary<int, int> _spriteSoundCache = new();
 
     private void LoadSpritePack(SoundPack soundPack)
     {

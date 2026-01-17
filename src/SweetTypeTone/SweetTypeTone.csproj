@@ -26,12 +26,11 @@
       <PrivateAssets Condition="'$(Configuration)' != 'Debug'">All</PrivateAssets>
     </PackageReference>
     <PackageReference Include="CommunityToolkit.Mvvm" Version="8.4.0" />
+    <PackageReference Include="NLayer" Version="1.15.0" />
+    <PackageReference Include="NVorbis" Version="0.10.5" />
+    <PackageReference Include="OpenTK.OpenAL" Version="4.7.7" />
     <PackageReference Include="Serilog" Version="4.3.0" />
     <PackageReference Include="Serilog.Sinks.Console" Version="6.1.1" />
     <PackageReference Include="Serilog.Sinks.File" Version="7.0.0" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <ProjectReference Include="..\SweetTypeTone.Core\SweetTypeTone.Core.csproj" />
   </ItemGroup>
 </Project>

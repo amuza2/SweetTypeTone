@@ -1,8 +1,11 @@
-using SweetTypeTone.Core.Interfaces;
-using SweetTypeTone.Core.Models;
+using System;
+using System.IO;
 using System.Text.Json;
+using System.Threading.Tasks;
+using SweetTypeTone.Interfaces;
+using SweetTypeTone.Models;
 
-namespace SweetTypeTone.Core.Services;
+namespace SweetTypeTone.Services;
 
 /// <summary>
 /// Service for managing application settings

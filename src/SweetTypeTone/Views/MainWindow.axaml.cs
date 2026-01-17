@@ -2,7 +2,7 @@ using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.Interactivity;
 using SweetTypeTone.ViewModels;
-using SweetTypeTone.Core.Models;
+using SweetTypeTone.Models;
 using System;
 using System.Threading.Tasks;
 
