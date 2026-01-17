@@ -47,10 +47,11 @@ jobs:
         cd ../..
         echo "📦 Binary archive created"
     
-    - name: Download appimagetool
+    - name: Install FUSE for AppImage
       run: |
-        wget -q https://github.com/AppImage/AppImageKit/releases/download/continuous/appimagetool-x86_64.AppImage -O appimagetool
-        chmod +x appimagetool
+        sudo add-apt-repository universe
+        sudo apt-get update
+        sudo apt-get install -y libfuse2
     
     - name: Build AppImage
       run: |
@@ -60,7 +61,7 @@ jobs:
     
     - name: Rename AppImage with version
       run: |
-        mv SweetTypeTone-1.0.0-x86_64.AppImage SweetTypeTone-${{ steps.get_version.outputs.VERSION }}-x86_64.AppImage
+        mv SweetTypeTone-*-x86_64.AppImage SweetTypeTone-${{ steps.get_version.outputs.VERSION }}-x86_64.AppImage 2>/dev/null || true
     
     - name: Create Release
       uses: softprops/action-gh-release@v1
