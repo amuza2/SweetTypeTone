@@ -26,7 +26,7 @@ jobs:
     
     - name: Publish Binary
       run: |
-        dotnet publish src/SweetTypeTone/SweetTypeTone.csproj \
+        dotnet publish src/SweetTypeTone.csproj \
           -c Release \
           -r linux-x64 \
           --self-contained true \
@@ -39,6 +39,13 @@ jobs:
         mkdir -p publish/linux-x64/BundledSoundPacks
         cp -r BundledSoundPacks/* publish/linux-x64/BundledSoundPacks/
         echo "✅ Copied $(ls -1 BundledSoundPacks | wc -l) sound packs to binary"
+    
+    - name: Add Install Script and Icon to Binary
+      run: |
+        cp scripts/install-binary.sh publish/linux-x64/install.sh
+        chmod +x publish/linux-x64/install.sh
+        cp src/Assets/icons8-key-press-96.png publish/linux-x64/icon.png
+        echo "✅ Added install.sh and icon"
     
     - name: Create Binary Archive
       run: |

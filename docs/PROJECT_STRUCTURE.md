@@ -182,7 +182,7 @@ cd SweetTypeTone
 ### 2. Build for Development
 ```bash
 dotnet build
-dotnet run --project src/SweetTypeTone/SweetTypeTone.csproj
+dotnet run --project src/SweetTypeTone.csproj
 ```
 
 ### 3. Build for Release

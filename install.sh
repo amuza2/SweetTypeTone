@@ -40,10 +40,11 @@ $DOTNET_CMD --version
 
 # Build the application
 echo "Building SweetTypeTone..."
-cd "$(dirname "$0")"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+cd "$SCRIPT_DIR"
 
 # Build as the actual user to avoid permission issues and use correct .NET
-sudo -u "$ACTUAL_USER" $DOTNET_CMD publish src/SweetTypeTone/SweetTypeTone.csproj -c Release -r linux-x64 --self-contained false -o build/
+sudo -u "$ACTUAL_USER" $DOTNET_CMD publish "$SCRIPT_DIR/src/SweetTypeTone.csproj" -c Release -r linux-x64 --self-contained false -o "$SCRIPT_DIR/build/"
 
 # Create installation directory
 echo "Creating installation directory..."

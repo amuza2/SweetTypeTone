@@ -1,7 +1,7 @@
 <div align="center">
 
   
-  ![Sweet Type Tone Logo](https://github.com/amuza2/SweetTypeTone/blob/main/src/SweetTypeTone/Assets/icons8-key-press-96.png)
+  ![Sweet Type Tone Logo](https://github.com/amuza2/SweetTypeTone/blob/main/src/Assets/icons8-key-press-96.png)
 # 🎵 SweetTypeTone
 
 
@@ -85,7 +85,7 @@ cd  SweetTypeTone
 
 # Or just build for development
 dotnet  build  -c  Release
-dotnet  run  --project  src/SweetTypeTone/SweetTypeTone.csproj
+dotnet  run  --project  src/SweetTypeTone.csproj
 
 ```
 

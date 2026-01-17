@@ -20,7 +20,7 @@ rm -f ${APP_NAME}-${VERSION}-linux-x64.tar.gz
 
 # Publish the application
 echo "📦 Publishing application..."
-dotnet publish src/SweetTypeTone/SweetTypeTone.csproj \
+dotnet publish src/SweetTypeTone.csproj \
   -c Release \
   -r linux-x64 \
   --self-contained true \

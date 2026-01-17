@@ -41,7 +41,7 @@ dotnet restore
 dotnet build
 
 # Run the application
-dotnet run --project src/SweetTypeTone/SweetTypeTone.csproj
+dotnet run --project src/SweetTypeTone.csproj
 ```
 
 ### Project Structure

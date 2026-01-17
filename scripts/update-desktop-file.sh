@@ -11,16 +11,16 @@ SHARE_DIR="$HOME/.local/share"
 DESKTOP_FILE="$SHARE_DIR/applications/sweettypetone.desktop"
 
 # Copy icon to multiple sizes for better compatibility
-if [ -f "src/SweetTypeTone/Assets/icons8-key-press-96.png" ]; then
+if [ -f "src/Assets/icons8-key-press-96.png" ]; then
     echo "🎨 Installing application icon in multiple sizes..."
     for size in 48 64 96 128 256; do
         ICON_DIR="$SHARE_DIR/icons/hicolor/${size}x${size}/apps"
         mkdir -p "$ICON_DIR"
-        cp src/SweetTypeTone/Assets/icons8-key-press-96.png "$ICON_DIR/sweettypetone.png"
+        cp src/Assets/icons8-key-press-96.png "$ICON_DIR/sweettypetone.png"
     done
     echo "✅ Icon installed in sizes: 48x48, 64x64, 96x96, 128x128, 256x256"
 else
-    echo "⚠️  Warning: Icon file not found at src/SweetTypeTone/Assets/icons8-key-press-96.png"
+    echo "⚠️  Warning: Icon file not found at src/Assets/icons8-key-press-96.png"
 fi
 
 # Create/update desktop file

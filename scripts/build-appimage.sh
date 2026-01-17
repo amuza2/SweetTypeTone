@@ -30,7 +30,7 @@ rm -rf ./${APPDIR}
 
 # Publish the application
 echo "📦 Publishing application..."
-dotnet publish src/SweetTypeTone/SweetTypeTone.csproj \
+dotnet publish src/SweetTypeTone.csproj \
   -c Release \
   -r linux-x64 \
   --self-contained true \
@@ -74,9 +74,9 @@ fi
 
 # Copy icon
 echo "🎨 Copying application icon..."
-if [ -f "src/SweetTypeTone/Assets/icons8-key-press-96.png" ]; then
-    cp src/SweetTypeTone/Assets/icons8-key-press-96.png ${APPDIR}/sweettypetone.png
-    cp src/SweetTypeTone/Assets/icons8-key-press-96.png ${APPDIR}/usr/share/icons/hicolor/256x256/apps/sweettypetone.png
+if [ -f "src/Assets/icons8-key-press-96.png" ]; then
+    cp src/Assets/icons8-key-press-96.png ${APPDIR}/sweettypetone.png
+    cp src/Assets/icons8-key-press-96.png ${APPDIR}/usr/share/icons/hicolor/256x256/apps/sweettypetone.png
     echo "✅ Icon copied"
 else
     echo "⚠️  Warning: Icon file not found"
