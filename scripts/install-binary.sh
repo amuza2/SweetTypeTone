@@ -1,85 +1,96 @@
 #!/bin/bash
 
-# SweetTypeTone Binary Installation Script
-# Run this after extracting the .tar.gz archive
+# SweetTypeTone Installation Script
 
 set -e
 
-INSTALL_DIR="/opt/sweettypetone"
-BIN_DIR="/usr/local/bin"
-DESKTOP_DIR="/usr/share/applications"
+INSTALL_DIR="$HOME/.local/bin"
+SHARE_DIR="$HOME/.local/share"
+APP_NAME="SweetTypeTone"
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
-echo "=== SweetTypeTone Installation ==="
+echo "🎵 Installing SweetTypeTone..."
 echo ""
 
-# Check if running as root
-if [ "$EUID" -ne 0 ]; then 
-    echo "This script must be run as root (use sudo)"
-    echo "Usage: sudo ./install.sh"
-    exit 1
-fi
-
-# Get the actual user (not root when using sudo)
-ACTUAL_USER="${SUDO_USER:-$USER}"
-
-# Create installation directory
-echo "Installing SweetTypeTone..."
+# Create directories
 mkdir -p "$INSTALL_DIR"
+mkdir -p "$SHARE_DIR/applications"
+mkdir -p "$SHARE_DIR/icons/hicolor/96x96/apps"
+mkdir -p "$SHARE_DIR/$APP_NAME"
 
-# Copy all files from current directory
-cp -r "$SCRIPT_DIR"/* "$INSTALL_DIR/"
-chmod +x "$INSTALL_DIR/SweetTypeTone"
+# Copy binary and dependencies
+echo "📋 Installing application files to $SHARE_DIR/$APP_NAME..."
+cp "$SCRIPT_DIR/$APP_NAME" "$SHARE_DIR/$APP_NAME/"
+if ls "$SCRIPT_DIR"/*.so 1> /dev/null 2>&1; then
+    echo "📦 Installing shared libraries..."
+    cp "$SCRIPT_DIR"/*.so "$SHARE_DIR/$APP_NAME/"
+fi
+chmod +x "$SHARE_DIR/$APP_NAME/$APP_NAME"
 
-# Create launcher script
-echo "Creating launcher..."
-cat > "$BIN_DIR/sweettypetone" << 'EOF'
-#!/bin/bash
-
-# Check if user has input group access
-if ! groups | grep -q '\binput\b'; then
-    echo "Setting up permissions (one-time setup)..."
-    sudo usermod -aG input "$USER"
-    echo ""
-    echo "============================================"
-    echo "Permissions configured!"
-    echo ""
-    echo "IMPORTANT: You must log out and log back in"
-    echo "for the changes to take effect."
-    echo ""
-    echo "After logging back in, run: sweettypetone"
-    echo "============================================"
-    exit 0
+# Copy bundled sound packs
+if [ -d "$SCRIPT_DIR/BundledSoundPacks" ]; then
+    echo "🎹 Installing bundled sound packs..."
+    mkdir -p "$SHARE_DIR/$APP_NAME/BundledSoundPacks"
+    cp -r "$SCRIPT_DIR/BundledSoundPacks"/* "$SHARE_DIR/$APP_NAME/BundledSoundPacks/"
+    echo "✅ Sound packs installed"
 fi
 
-# Run the application
-exec /opt/sweettypetone/SweetTypeTone "$@"
-EOF
+# Create symlink in bin
+echo "🔗 Creating symlink in $INSTALL_DIR..."
+ln -sf "$SHARE_DIR/$APP_NAME/$APP_NAME" "$INSTALL_DIR/$APP_NAME"
 
-chmod 755 "$BIN_DIR/sweettypetone"
+# Copy icon to multiple sizes
+if [ -f "$SCRIPT_DIR/icon.png" ]; then
+    echo "🎨 Installing application icon..."
+    for size in 48 64 96 128 256; do
+        mkdir -p "$SHARE_DIR/icons/hicolor/${size}x${size}/apps"
+        cp "$SCRIPT_DIR/icon.png" "$SHARE_DIR/icons/hicolor/${size}x${size}/apps/sweettypetone.png"
+    done
+    echo "✅ Icon installed in multiple sizes"
+fi
 
 # Create desktop entry
-echo "Creating desktop entry..."
-cat > "$DESKTOP_DIR/sweettypetone.desktop" << EOF
+echo "📝 Creating desktop entry..."
+cat > "$SHARE_DIR/applications/sweettypetone.desktop" << DESKTOP
 [Desktop Entry]
-Version=1.0
+Version=1.1
 Type=Application
 Name=SweetTypeTone
 Comment=Play keyboard sounds as you type
-Exec=/usr/local/bin/sweettypetone
-Icon=$INSTALL_DIR/icon.png
+Exec=$APP_NAME
+Icon=sweettypetone
 Terminal=false
+Keywords=keyboard;sound;typing;mechanical;
 Categories=AudioVideo;Audio;
 StartupNotify=true
-EOF
+DESKTOP
+
+# Update desktop database
+if command -v update-desktop-database &> /dev/null; then
+    update-desktop-database "$SHARE_DIR/applications" 2>/dev/null || true
+fi
+
+# Update icon cache
+if command -v gtk-update-icon-cache &> /dev/null; then
+    gtk-update-icon-cache -f -t "$SHARE_DIR/icons/hicolor" 2>/dev/null || true
+fi
+
+# Add to PATH if not already there
+if [[ ":$PATH:" != *":$INSTALL_DIR:"* ]]; then
+    echo ""
+    echo "⚠️  Add $INSTALL_DIR to your PATH by adding this to ~/.bashrc or ~/.zshrc:"
+    echo "   export PATH=\"\$HOME/.local/bin:\$PATH\""
+fi
 
 echo ""
-echo "=== Installation Complete ==="
+echo "✅ Installation complete!"
 echo ""
-echo "To run SweetTypeTone:"
-echo "  1. Type 'sweettypetone' in terminal, or"
-echo "  2. Find 'SweetTypeTone' in your application menu"
+echo "📁 Installation location: $SHARE_DIR/$APP_NAME"
+echo "🚀 To run: $APP_NAME"
 echo ""
-echo "On first run, you'll be prompted to setup permissions."
-echo "After granting permission, log out and log back in."
+echo "💡 You can also find SweetTypeTone in your application menu."
+echo ""
+echo "⚠️  First run: You'll need to add yourself to the 'input' group:"
+echo "   sudo usermod -aG input \$USER"
+echo "   Then log out and log back in."
 echo ""
